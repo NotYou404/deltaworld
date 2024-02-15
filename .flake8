@@ -1,0 +1,17 @@
+[flake8]
+ignore =
+    ## Ignored as Pylance already does the job ##
+    # Unused import
+    F401
+    # Unused assignment
+    F841
+    # Syntax error
+    E999
+    # Undefined name
+    F821
+
+    ## Ignored because they're unnecessary and annoying
+    # Line break before binary operator
+    W503
+    # Line break after binary operator
+    W504
