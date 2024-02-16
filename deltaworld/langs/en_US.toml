@@ -10,7 +10,8 @@ options = "Options"
 quit = "Quit"
 
 # Options
-use_arrows_to_switch_value = "Use ⇦ ⇨ to switch value."
+options_menu = "Options"
+use_arrows_to_switch_value = "Use 🡨 🡪 to switch value."
 language = "Language"
 volume = "Volume"
 controls = "Controls (Enter to rebind)"

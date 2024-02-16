@@ -55,7 +55,7 @@ class Window(cme.window.Window):
             enable_polling=enable_polling,
         )
 
-        self.set_min_size(1330, 748)
+        self.set_min_size(1330, 900)
 
         try:
             self.settings: Settings = cme.resource_.load_settings()
@@ -83,6 +83,7 @@ class Window(cme.window.Window):
         :type langcode: str
         """
         self.lang = cme.localization.LangDict.from_langcode(langcode)
+        self.settings.langcode = langcode
 
     def set_volume(self) -> None:
         for player in cme.sound.get_all_player_instances():

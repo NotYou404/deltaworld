@@ -1,0 +1,27 @@
+[meta]
+langcode = "de_DE"
+name = "Deutsch"
+
+[strings]
+# Main Menu
+deltaworld = "Deltaworld"
+start_game = "Spiel Starten"
+options = "Optionen"
+quit = "Beenden"
+
+# Options
+options_menu = "Optionen"
+use_arrows_to_switch_value = "Benutze 🡨 🡪 um den Wert zu aendern."
+language = "Sprache"
+volume = "Lautstaerke"
+controls = "Steuerung (Enter zur Umbelegung)"
+move_up = "Nach oben laufen: {key}"
+move_down = "Nach unten laufen: {key}"
+move_left = "Nach links laufen: {key}"
+move_right = "Nach rechts laufen: {key}"
+shoot_up = "Nach oben schiessen: {key}"
+shoot_down = "Nach unten schiessen: {key}"
+shoot_left = "Nach links schiessen: {key}"
+shoot_right = "Nach rechts schiessen: {key}"
+item = "Item benutzen: {key}"
+back = "Zurueck"
