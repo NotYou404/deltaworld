@@ -2,15 +2,15 @@ from typing import TYPE_CHECKING
 
 import cme.localization
 import cme.text
-from cme.text import center_x, center_y
 import cme.view
 from cme import csscolor, key
-from cme.sprite import AnimatedSprite, Sprite, SpriteList
-from cme.texture import Texture, load_texture
 from cme.shapes import Batch, Rectangle
+from cme.sprite import AnimatedSprite, Scene, Sprite, SpriteList
+from cme.text import center_x, center_y
+from cme.texture import Texture, load_texture
 
 from .enums import Font
-from .paths import TEXTURES_PATH
+from .paths import MAPS_PATH, TEXTURES_PATH
 
 if TYPE_CHECKING:
     from .window import Window
@@ -18,8 +18,8 @@ if TYPE_CHECKING:
 
 class MenuView(cme.view.FadingView):
     """
-    View that appears right when starting the game. Shows a splash screen with
-    the game name.
+    View handling the main menu where the user can start the actual gameplay,
+    change settings and quit.
     """
     window: "Window"
 
@@ -437,3 +437,20 @@ class MenuView(cme.view.FadingView):
         super().on_update(delta_time)
         self.pointer_right.update_animation()
         self.pointer_left.update_animation()
+
+
+class GameView(cme.view.FadingView):
+    """
+    View handling the main gameplay.
+    """
+    window: "Window"
+
+    def setup(self) -> None:
+        self.current_map = "d1r1.tmx"
+
+    def load_current_map(self):
+        self.tilemap = cme.tilemap.TileMap(
+            MAPS_PATH / self.current_map,
+            use_spatial_hash=True
+        )
+        self.scene = Scene.from_tilemap(self.tilemap)

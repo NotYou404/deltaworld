@@ -1,0 +1,223 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "d4r5.tmx",
+    "expandedProjectPaths": [
+        "."
+    ],
+    "fileStates": {
+        "d1r1.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 244,
+                "y": 324
+            }
+        },
+        "d1r2.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 300.80000000000007,
+                "y": 300.79999999999995
+            }
+        },
+        "d1r3.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 302.22222222222223,
+                "y": 302.2222222222222
+            }
+        },
+        "d1r4.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 301.5111111111112,
+                "y": 300.79999999999995
+            }
+        },
+        "d1r5.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 301.5111111111112,
+                "y": 299.37777777777774
+            }
+        },
+        "d2r1.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 301.5111111111112,
+                "y": 301.51111111111106
+            }
+        },
+        "d2r2.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 303.64444444444445,
+                "y": 303.64444444444445
+            }
+        },
+        "d2r3.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 303.64444444444445,
+                "y": 303.64444444444445
+            }
+        },
+        "d2r4.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 303.64444444444445,
+                "y": 303.64444444444445
+            }
+        },
+        "d2r5.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 301.5111111111112,
+                "y": 300.79999999999995
+            }
+        },
+        "d3r1.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 301.5111111111112,
+                "y": 301.51111111111106
+            }
+        },
+        "d3r2.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 302.22222222222223,
+                "y": 302.2222222222222
+            }
+        },
+        "d3r3.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 302.93333333333334,
+                "y": 302.9333333333333
+            }
+        },
+        "d3r4.tmx": {
+            "scale": 1.4,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 301.42857142857144,
+                "y": 301.42857142857144
+            }
+        },
+        "d3r5.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 302.22222222222223,
+                "y": 302.2222222222222
+            }
+        },
+        "d4r1.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 302.93333333333334,
+                "y": 302.2222222222222
+            }
+        },
+        "d4r2.tmx": {
+            "scale": 1.5,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 282,
+                "y": 305.33333333333337
+            }
+        },
+        "d4r3.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 303.64444444444445,
+                "y": 303.64444444444445
+            }
+        },
+        "d4r4.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 302.22222222222223,
+                "y": 302.2222222222222
+            }
+        },
+        "d4r5.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 300.80000000000007,
+                "y": 299.37777777777774
+            }
+        },
+        "deltaworld.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 5.5
+        }
+    },
+    "last.exportedFilePath": "C:/Users/Dominik/code/projects/Deltaworld/deltaworld/assets/map",
+    "last.imagePath": "C:/Users/Dominik/code/projects/Deltaworld/deltaworld/assets/textures/map",
+    "map.height": 16,
+    "map.lastUsedExportFilter": "JSON-Kartendateien (*.tmj *.json)",
+    "map.lastUsedFormat": "tmx",
+    "map.orientation": null,
+    "map.tileHeight": 38,
+    "map.tileWidth": 38,
+    "map.width": 16,
+    "openFiles": [
+        "d1r3.tmx",
+        "d1r4.tmx",
+        "d1r5.tmx",
+        "d2r1.tmx",
+        "d2r2.tmx",
+        "d2r3.tmx",
+        "d2r4.tmx",
+        "d2r5.tmx",
+        "d3r1.tmx",
+        "d3r2.tmx",
+        "d3r3.tmx",
+        "d3r4.tmx",
+        "d3r5.tmx",
+        "d4r1.tmx",
+        "d4r2.tmx",
+        "d4r3.tmx",
+        "d4r4.tmx",
+        "d4r5.tmx"
+    ],
+    "project": "deltaworld.tiled-project",
+    "recentFiles": [
+        "d1r3.tmx",
+        "d1r4.tmx",
+        "d1r5.tmx",
+        "d2r1.tmx",
+        "d2r2.tmx",
+        "d2r3.tmx",
+        "d2r4.tmx",
+        "d2r5.tmx",
+        "d3r1.tmx",
+        "d3r2.tmx",
+        "d3r3.tmx",
+        "d3r4.tmx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.type": 1
+}
