@@ -2,13 +2,12 @@ from typing import TYPE_CHECKING
 
 import cme.localization
 import cme.text
-from cme.text import center_x
+from cme.text import center_x, center_y
 import cme.view
 from cme import csscolor, key
 from cme.sprite import AnimatedSprite, Sprite, SpriteList
 from cme.texture import Texture, load_texture
-
-from pyglet.graphics import Batch
+from cme.shapes import Batch, Rectangle
 
 from .enums import Font
 from .paths import TEXTURES_PATH
@@ -129,28 +128,69 @@ class MenuView(cme.view.FadingView):
         center_x(self.settings_back, width)
         self.settings_back.y = item_above.y - 80
 
+        self.settings_pointer_right.center_x = self.selected_setting.left - 40
+        self.settings_pointer_right.center_y = self.selected_setting.y + self.selected_setting.content_height / 2  # noqa
+        self.settings_pointer_left.center_x = self.selected_setting.right + 40
+        self.settings_pointer_left.center_y = self.selected_setting.y + self.selected_setting.content_height / 2  # noqa
+
+        self.rebind_overlay.width = width
+        self.rebind_overlay.height = height
+        center_x(self.rebind_text, width)
+        center_y(self.rebind_text, height)
+
     def on_key_press(self, symbol: int, modifiers: int):
         super().on_key_press(symbol, modifiers)
+        if self.rebind_overlay.visible:
+            # Rebinding controls
+            setattr(
+                self.window.settings.controls,
+                self.selected_setting.control,
+                symbol,
+            )
+            self.rebind_overlay.visible = False
+            self.apply_language()
+            self.on_resize(self.window.width, self.window.height)
+            return
+
         if symbol == key.UP:
-            if self.selected_item == self.settings:
-                self.selected_item = self.start_game
-            elif self.selected_item == self.quit:
-                self.selected_item = self.settings
+            if not self.settings_menu.visible:
+                if self.selected_item == self.settings:
+                    self.selected_item = self.start_game
+                elif self.selected_item == self.quit:
+                    self.selected_item = self.settings
+            else:
+                idx = self.settings_actions.index(self.selected_setting)
+                if idx != 0:
+                    self.selected_setting = self.settings_actions[idx - 1]
             self.on_resize(self.window.width, self.window.height)
         elif symbol == key.DOWN:
-            if self.selected_item == self.start_game:
-                self.selected_item = self.settings
-            elif self.selected_item == self.settings:
-                self.selected_item = self.quit
+            if not self.settings_menu.visible:
+                if self.selected_item == self.start_game:
+                    self.selected_item = self.settings
+                elif self.selected_item == self.settings:
+                    self.selected_item = self.quit
+            else:
+                idx = self.settings_actions.index(self.selected_setting)
+                if idx != len(self.settings_actions) - 1:
+                    self.selected_setting = self.settings_actions[idx + 1]
             self.on_resize(self.window.width, self.window.height)
         elif symbol == key.ENTER:
-            if self.selected_item == self.start_game:
-                self.next_view = GameView
-                self.start_fade_out()
-            elif self.selected_item == self.settings:
-                self.show_settings_menu()
+            if not self.settings_menu.visible:
+                if self.selected_item == self.start_game:
+                    self.next_view = GameView
+                    self.start_fade_out()
+                elif self.selected_item == self.settings:
+                    self.show_settings_menu()
+                else:
+                    self.window.close()
             else:
-                self.window.close()
+                if self.selected_setting == self.settings_back:
+                    self.hide_settings_menu()
+                elif self.selected_setting not in (
+                    self.settings_lang_switch,
+                    self.settings_volume_switch,
+                ):  # Control rebind
+                    self.rebind_overlay.visible = True
 
         elif symbol in (key.LEFT, key.RIGHT):
             if not self.settings_menu.visible:
@@ -166,10 +206,21 @@ class MenuView(cme.view.FadingView):
                             next_code = codes[idx + 1]
                         except IndexError:
                             next_code = codes[0]
-                    self.window.set_language(next_code)
+                    self.window.settings.langcode = next_code
+                    self.window.settings.apply(self.window)
                     self.apply_language()
                     self.settings_lang_switch.text = self.window.lang.name
                     self.on_resize(self.window.width, self.window.height)
+                elif self.selected_setting == self.settings_volume_switch:
+                    if symbol == key.LEFT:
+                        self.window.settings.volume -= 2
+                    else:
+                        self.window.settings.volume += 2
+                    self.window.settings.apply(self.window)
+                    self.settings_volume_switch.text = self.window.settings.volume  # noqa
+                    self.on_resize(self.window.width, self.window.height)
+                else:  # Controls
+                    pass  # Controls only react on Enter
 
     def apply_language(self):
         self.header.text = self.window.lang["deltaworld"]
@@ -181,14 +232,18 @@ class MenuView(cme.view.FadingView):
         self.settings_lang_label.text = self.window.lang["language"]
         self.settings_volume_label.text = self.window.lang["volume"]
         self.settings_controls_label.text = self.window.lang["controls"]
-        for entry, setting in zip(self.settings_entries[9:], (
-            "move_up", "move_down", "move_left", "move_right",
-            "shoot_up", "shoot_down", "shoot_left", "shoot_right", "item"
-        )):
-            entry.text = self.window.lang[setting].format(
-                key=getattr(self.window.settings.controls, setting)
+        for control in self.settings_controls:
+            control_id = getattr(
+                self.window.settings.controls, control.control
+            )
+            control_name = key.reverse_lookup.get(
+                control_id, f"<{control_id}>"
+            )
+            control.text = self.window.lang[control.control].format(
+                key=control_name
             )
         self.settings_back.text = self.window.lang["back"]
+        self.rebind_text.text = self.window.lang["press_any_key_to_rebind"]
 
     def create_settings_menu(self):
         self.settings_entries = []
@@ -199,6 +254,22 @@ class MenuView(cme.view.FadingView):
             ),
             scale=25,
         )
+        self.settings_pointer_right = Sprite(
+            path_or_texture=load_texture(
+                TEXTURES_PATH / "pointer_right.png",
+            ),
+            scale=4,
+        )
+        self.settings_pointer_left = Sprite(
+            path_or_texture=load_texture(
+                TEXTURES_PATH / "pointer_left.png",
+            ),
+            scale=4,
+        )
+        self.pixel_sprites.extend([
+            self.settings_pointer_right, self.settings_pointer_left
+        ])
+
         self.settings_menu_header = cme.text.Text(
             text="",
             start_x=0,
@@ -213,7 +284,7 @@ class MenuView(cme.view.FadingView):
             start_x=0,
             start_y=0,
             color=csscolor.WHITE,
-            font_size=20,
+            font_size=18,
             font_name=Font.november,
             batch=self.settings_batch,
         )
@@ -231,7 +302,7 @@ class MenuView(cme.view.FadingView):
             start_x=0,
             start_y=0,
             color=csscolor.WHITE,
-            font_size=20,
+            font_size=18,
             font_name=Font.november,
             batch=self.settings_batch,
         )
@@ -250,7 +321,7 @@ class MenuView(cme.view.FadingView):
             start_x=0,
             start_y=0,
             color=csscolor.WHITE,
-            font_size=20,
+            font_size=18,
             font_name=Font.november,
             batch=self.settings_batch,
         )
@@ -265,11 +336,11 @@ class MenuView(cme.view.FadingView):
         )
 
         self.settings_controls = []
-        for _ in ("move_up", "move_down", "move_left", "move_right",
-                  "shoot_up", "shoot_down", "shoot_left", "shoot_right",
-                  "item"):
+        for control in ("move_up", "move_down", "move_left", "move_right",
+                        "shoot_up", "shoot_down", "shoot_left", "shoot_right",
+                        "use_item"):
             self.settings_controls.append(
-                cme.text.Text(
+                obj := cme.text.Text(
                     text="",
                     start_x=0,
                     start_y=0,
@@ -279,16 +350,24 @@ class MenuView(cme.view.FadingView):
                     batch=self.settings_batch,
                 )
             )
+            obj.control = control
 
         self.settings_back = cme.text.Text(
             text="",
             start_x=0,
             start_y=0,
             color=csscolor.WHITE,
-            font_size=20,
+            font_size=18,
             font_name=Font.november,
             batch=self.settings_batch,
         )
+
+        self.settings_actions = [
+            self.settings_lang_switch,
+            self.settings_volume_switch,
+            *self.settings_controls,
+            self.settings_back,
+        ]
 
         self.pixel_sprites.append(self.settings_menu)
         self.settings_entries.extend([
@@ -299,13 +378,36 @@ class MenuView(cme.view.FadingView):
         ])
         self.settings_entries.extend(self.settings_controls)
 
+        self.rebind_overlay = Rectangle(
+            x=0,
+            y=0,
+            width=0,
+            height=0,
+            color=cme.types.Color(0, 0, 0, 200),
+        )
+        self.rebind_overlay.visible = False
+        self.rebind_text = cme.text.Text(
+            text="",
+            start_x=0,
+            start_y=0,
+            color=csscolor.WHITE,
+            font_size=36,
+            font_name=Font.november,
+        )
+
         self.on_resize(self.window.width, self.window.height)
 
     def show_settings_menu(self):
         self.settings_menu.visible = True
+        self.settings_pointer_right.visible = True
+        self.settings_pointer_left.visible = True
+        self.selected_setting = self.settings_lang_switch
+        self.on_resize(self.window.width, self.window.height)
 
     def hide_settings_menu(self):
         self.settings_menu.visible = False
+        self.settings_pointer_right.visible = False
+        self.settings_pointer_left.visible = False
 
     def on_show_view(self) -> None:
         super().on_show_view()
@@ -316,8 +418,19 @@ class MenuView(cme.view.FadingView):
         super().on_draw()
         self.text_batch.draw()
         self.pixel_sprites.draw(pixelated=True)
+
+        # BUG This gets overdrawn by settings_menu, no matter the SpriteList
+        # order
+        self.settings_pointer_right.draw(pixelated=True)
+        self.settings_pointer_left.draw(pixelated=True)
+
         if self.settings_menu.visible:
             self.settings_batch.draw()
+
+        if self.rebind_overlay.visible:
+            self.rebind_overlay.draw()
+            self.rebind_text.draw()
+
         self.draw_fading()
 
     def on_update(self, delta_time: float) -> None:

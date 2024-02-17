@@ -83,7 +83,6 @@ class Window(cme.window.Window):
         :type langcode: str
         """
         self.lang = cme.localization.LangDict.from_langcode(langcode)
-        self.settings.langcode = langcode
 
     def set_volume(self) -> None:
         for player in cme.sound.get_all_player_instances():
@@ -93,6 +92,7 @@ class Window(cme.window.Window):
         super().on_key_press(symbol, modifiers)
         if symbol == key.F11:
             self.set_fullscreen(not self.fullscreen)
+            self.center_window()
 
     def on_resize(self, width: int, height: int) -> None:
         super().on_resize(width, height)

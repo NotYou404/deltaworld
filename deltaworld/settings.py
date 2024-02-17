@@ -47,6 +47,10 @@ class Settings(cme.resource_.Settings):
 
     @volume.setter
     def volume(self, value: int) -> None:
+        if value < 0:
+            value = 0
+        elif value > 100:
+            value = 100
         self._volume = value
 
     @property
@@ -159,7 +163,7 @@ class Controls:
         shoot_down: int,
         shoot_left: int,
         shoot_right: int,
-        item: int,
+        use_item: int,
     ):
         """
         :param move_up: Move upwards.
@@ -189,7 +193,7 @@ class Controls:
         self.shoot_down = shoot_down
         self.shoot_left = shoot_left
         self.shoot_right = shoot_right
-        self.item = item
+        self.use_item = use_item
 
     def serialize(self) -> dict[str, Any]:
         """
@@ -222,7 +226,7 @@ class Controls:
             "shoot_down": key.DOWN,
             "shoot_left": key.LEFT,
             "shoot_right": key.RIGHT,
-            "item": key.SPACE,
+            "use_item": key.SPACE,
         }
 
     @classmethod

@@ -11,7 +11,7 @@ quit = "Beenden"
 
 # Options
 options_menu = "Optionen"
-use_arrows_to_switch_value = "Benutze 🡨 🡪 um den Wert zu aendern."
+use_arrows_to_switch_value = "Benutze < > um den Wert zu aendern."
 language = "Sprache"
 volume = "Lautstaerke"
 controls = "Steuerung (Enter zur Umbelegung)"
