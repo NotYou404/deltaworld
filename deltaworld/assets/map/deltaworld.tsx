@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.10.2" name="deltaworld" tilewidth="38" tileheight="38" tilecount="18" columns="0">
+<tileset version="1.10" tiledversion="1.10.2" name="deltaworld" tilewidth="38" tileheight="38" tilecount="19" columns="0">
  <grid orientation="orthogonal" width="1" height="1"/>
  <tile id="0">
   <image width="38" height="38" source="../textures/map/grass.png"/>
@@ -15,12 +15,6 @@
  </tile>
  <tile id="4">
   <image width="38" height="38" source="../textures/map/barrel.png"/>
- </tile>
- <tile id="5">
-  <image width="38" height="38" source="../textures/map/crack.png"/>
- </tile>
- <tile id="6">
-  <image width="38" height="38" source="../textures/map/fire.png"/>
  </tile>
  <tile id="7">
   <image width="38" height="38" source="../textures/map/netherrack.png"/>
@@ -54,5 +48,14 @@
  </tile>
  <tile id="18">
   <image width="38" height="38" source="../textures/map/firestone.png"/>
+ </tile>
+ <tile id="19">
+  <image width="38" height="38" source="../textures/map/fire1.png"/>
+ </tile>
+ <tile id="20" probability="0.1">
+  <image width="38" height="38" source="../textures/map/grass_rocks.png"/>
+ </tile>
+ <tile id="21" probability="0.3">
+  <image width="38" height="38" source="../textures/map/grass_flowered.png"/>
  </tile>
 </tileset>

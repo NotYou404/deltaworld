@@ -3,17 +3,25 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "d4r5.tmx",
+    "activeFile": "",
     "expandedProjectPaths": [
         "."
     ],
     "fileStates": {
         "d1r1.tmx": {
             "scale": 1,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 241,
+                "y": 321
+            }
+        },
+        "d1r2.tmj": {
+            "scale": 1.40625,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 244,
-                "y": 324
+                "x": 304.35555555555555,
+                "y": 304.35555555555555
             }
         },
         "d1r2.tmx": {
@@ -21,90 +29,10 @@
             "selectedLayer": 1,
             "viewCenter": {
                 "x": 300.80000000000007,
-                "y": 300.79999999999995
+                "y": 300.08888888888885
             }
         },
-        "d1r3.tmx": {
-            "scale": 1.40625,
-            "selectedLayer": 0,
-            "viewCenter": {
-                "x": 302.22222222222223,
-                "y": 302.2222222222222
-            }
-        },
-        "d1r4.tmx": {
-            "scale": 1.40625,
-            "selectedLayer": 0,
-            "viewCenter": {
-                "x": 301.5111111111112,
-                "y": 300.79999999999995
-            }
-        },
-        "d1r5.tmx": {
-            "scale": 1.40625,
-            "selectedLayer": 0,
-            "viewCenter": {
-                "x": 301.5111111111112,
-                "y": 299.37777777777774
-            }
-        },
-        "d2r1.tmx": {
-            "scale": 1.40625,
-            "selectedLayer": 1,
-            "viewCenter": {
-                "x": 301.5111111111112,
-                "y": 301.51111111111106
-            }
-        },
-        "d2r2.tmx": {
-            "scale": 1.40625,
-            "selectedLayer": 1,
-            "viewCenter": {
-                "x": 303.64444444444445,
-                "y": 303.64444444444445
-            }
-        },
-        "d2r3.tmx": {
-            "scale": 1.40625,
-            "selectedLayer": 1,
-            "viewCenter": {
-                "x": 303.64444444444445,
-                "y": 303.64444444444445
-            }
-        },
-        "d2r4.tmx": {
-            "scale": 1.40625,
-            "selectedLayer": 1,
-            "viewCenter": {
-                "x": 303.64444444444445,
-                "y": 303.64444444444445
-            }
-        },
-        "d2r5.tmx": {
-            "scale": 1.40625,
-            "selectedLayer": 1,
-            "viewCenter": {
-                "x": 301.5111111111112,
-                "y": 300.79999999999995
-            }
-        },
-        "d3r1.tmx": {
-            "scale": 1.40625,
-            "selectedLayer": 1,
-            "viewCenter": {
-                "x": 301.5111111111112,
-                "y": 301.51111111111106
-            }
-        },
-        "d3r2.tmx": {
-            "scale": 1.40625,
-            "selectedLayer": 1,
-            "viewCenter": {
-                "x": 302.22222222222223,
-                "y": 302.2222222222222
-            }
-        },
-        "d3r3.tmx": {
+        "d1r3.tmj": {
             "scale": 1.40625,
             "selectedLayer": 1,
             "viewCenter": {
@@ -112,60 +40,156 @@
                 "y": 302.9333333333333
             }
         },
+        "d1r3.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 304.35555555555555,
+                "y": 304.35555555555555
+            }
+        },
+        "d1r4.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 302.93333333333334,
+                "y": 303.64444444444445
+            }
+        },
+        "d1r5.tmj": {
+            "scale": 1.40625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 304.35555555555555,
+                "y": 304.35555555555555
+            }
+        },
+        "d1r5.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 303.64444444444445,
+                "y": 303.64444444444445
+            }
+        },
+        "d2r1.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 300.80000000000007,
+                "y": 298.6666666666667
+            }
+        },
+        "d2r2.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 302.22222222222223,
+                "y": 302.2222222222222
+            }
+        },
+        "d2r3.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 302.22222222222223,
+                "y": 302.2222222222222
+            }
+        },
+        "d2r4.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 302.22222222222223,
+                "y": 302.2222222222222
+            }
+        },
+        "d2r5.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 301.5111111111112,
+                "y": 298.6666666666667
+            }
+        },
+        "d3r1.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 301.5111111111112,
+                "y": 299.37777777777774
+            }
+        },
+        "d3r2.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 301.5111111111112,
+                "y": 300.08888888888885
+            }
+        },
+        "d3r3.tmx": {
+            "scale": 1.40625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 301.5111111111112,
+                "y": 300.79999999999995
+            }
+        },
         "d3r4.tmx": {
             "scale": 1.4,
-            "selectedLayer": 2,
+            "selectedLayer": 3,
             "viewCenter": {
-                "x": 301.42857142857144,
-                "y": 301.42857142857144
+                "x": 300.7142857142858,
+                "y": 300
             }
         },
         "d3r5.tmx": {
             "scale": 1.40625,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 302.22222222222223,
-                "y": 302.2222222222222
+                "x": 301.5111111111112,
+                "y": 300.08888888888885
             }
         },
         "d4r1.tmx": {
             "scale": 1.40625,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 302.93333333333334,
-                "y": 302.2222222222222
+                "x": 301.5111111111112,
+                "y": 300.08888888888885
             }
         },
         "d4r2.tmx": {
             "scale": 1.5,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 282,
-                "y": 305.33333333333337
+                "x": 280.66666666666663,
+                "y": 303.33333333333337
             }
         },
         "d4r3.tmx": {
             "scale": 1.40625,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 303.64444444444445,
-                "y": 303.64444444444445
+                "x": 302.22222222222223,
+                "y": 302.2222222222222
             }
         },
         "d4r4.tmx": {
             "scale": 1.40625,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 302.22222222222223,
-                "y": 302.2222222222222
+                "x": 301.5111111111112,
+                "y": 300.08888888888885
             }
         },
         "d4r5.tmx": {
-            "scale": 1.40625,
+            "scale": 1.5,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 300.80000000000007,
-                "y": 299.37777777777774
+                "x": 262,
+                "y": 341.99999999999994
             }
         },
         "deltaworld.tsx": {
@@ -184,39 +208,21 @@
     "map.tileWidth": 38,
     "map.width": 16,
     "openFiles": [
-        "d1r3.tmx",
-        "d1r4.tmx",
-        "d1r5.tmx",
-        "d2r1.tmx",
-        "d2r2.tmx",
-        "d2r3.tmx",
-        "d2r4.tmx",
-        "d2r5.tmx",
-        "d3r1.tmx",
-        "d3r2.tmx",
-        "d3r3.tmx",
-        "d3r4.tmx",
-        "d3r5.tmx",
-        "d4r1.tmx",
-        "d4r2.tmx",
-        "d4r3.tmx",
-        "d4r4.tmx",
-        "d4r5.tmx"
     ],
     "project": "deltaworld.tiled-project",
     "recentFiles": [
-        "d1r3.tmx",
-        "d1r4.tmx",
-        "d1r5.tmx",
-        "d2r1.tmx",
-        "d2r2.tmx",
-        "d2r3.tmx",
-        "d2r4.tmx",
-        "d2r5.tmx",
-        "d3r1.tmx",
-        "d3r2.tmx",
+        "deltaworld.tsx",
+        "d4r5.tmx",
+        "d4r4.tmx",
+        "d4r3.tmx",
+        "d4r2.tmx",
+        "d4r1.tmx",
+        "d3r5.tmx",
+        "d3r4.tmx",
         "d3r3.tmx",
-        "d3r4.tmx"
+        "d3r2.tmx",
+        "d3r1.tmx",
+        "d2r5.tmx"
     ],
     "tileset.lastUsedFormat": "tsx",
     "tileset.type": 1
