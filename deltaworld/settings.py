@@ -49,9 +49,9 @@ class Settings(cme.resource_.Settings):
     def volume(self, value: int) -> None:
         if value < 0:
             value = 0
-        elif value > 100:
-            value = 100
-        self._volume = value
+        elif value > 1:
+            value = 1
+        self._volume = round(value, 5)  # Counter floating point precision errors  # noqa
 
     @property
     def controls(self) -> "Controls":

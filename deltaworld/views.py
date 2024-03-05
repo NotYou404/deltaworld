@@ -221,11 +221,11 @@ class MenuView(cme.view.FadingView):
                     self.on_resize(self.window.width, self.window.height)
                 elif self.selected_setting == self.settings_volume_switch:
                     if symbol == key.LEFT:
-                        self.window.settings.volume -= 2
+                        self.window.settings.volume -= 0.02
                     else:
-                        self.window.settings.volume += 2
+                        self.window.settings.volume += 0.02
                     self.window.settings.apply(self.window)
-                    self.settings_volume_switch.text = self.window.settings.volume  # noqa
+                    self.settings_volume_switch.text = str(int(self.window.settings.volume * 100))  # noqa
                     self.on_resize(self.window.width, self.window.height)
                 else:  # Controls
                     pass  # Controls only react on Enter
@@ -325,7 +325,7 @@ class MenuView(cme.view.FadingView):
             batch=self.settings_batch,
         )
         self.settings_volume_switch = cme.text.Text(
-            text=str(self.window.settings.volume),
+            text=str(int(self.window.settings.volume * 100)),
             start_x=0,
             start_y=0,
             color=csscolor.WHITE,
@@ -429,7 +429,7 @@ class MenuView(cme.view.FadingView):
         )
         self.background_music = cme.sound.play_sound(
             background_music_source,
-            self.window.settings.volume / 100,
+            self.window.settings.volume,
         )
         self.background_music.pause()
 
