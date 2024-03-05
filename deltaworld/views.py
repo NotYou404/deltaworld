@@ -13,7 +13,9 @@ from cme.texture import (PymunkHitBoxAlgorithm, Texture, load_texture,
 from cme.camera import Camera
 
 from .enums import Font
-from .paths import MAPS_PATH, TEXTURES_PATH
+from .paths import MAPS_PATH, TEXTURES_PATH, MUSIC_PATH
+import cme.sound
+import cme.concurrency
 
 if TYPE_CHECKING:
     from .window import Window
@@ -419,6 +421,27 @@ class MenuView(cme.view.FadingView):
         super().on_show_view()
         self.window.background_color = csscolor.BLACK
         self.start_fade_in()
+
+        background_music_source = cme.sound.load_sound(
+            MUSIC_PATH / "crystal_cave.mp3",
+            streaming=True,
+            is_music=True,
+        )
+        self.background_music = cme.sound.play_sound(
+            background_music_source,
+            self.window.settings.volume / 100,
+        )
+        self.background_music.pause()
+
+        def start_background_music(dt: float):
+            self.background_music.play()
+
+        cme.concurrency.schedule_once(start_background_music, 1)
+
+    def on_hide_view(self):
+        super().on_hide_view()
+        self.background_music.pause()
+        self.background_music.delete()
 
     def on_draw(self) -> None:
         super().on_draw()
