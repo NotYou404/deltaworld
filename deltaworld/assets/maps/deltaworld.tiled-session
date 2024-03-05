@@ -12,8 +12,8 @@
             "scale": 1,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 241,
-                "y": 321
+                "x": 187,
+                "y": 320
             }
         },
         "d1r2.tmj": {
@@ -211,6 +211,7 @@
     ],
     "project": "deltaworld.tiled-project",
     "recentFiles": [
+        "d1r1.tmx",
         "deltaworld.tsx",
         "d4r5.tmx",
         "d4r4.tmx",
@@ -221,8 +222,7 @@
         "d3r4.tmx",
         "d3r3.tmx",
         "d3r2.tmx",
-        "d3r1.tmx",
-        "d2r5.tmx"
+        "d3r1.tmx"
     ],
     "tileset.lastUsedFormat": "tsx",
     "tileset.type": 1

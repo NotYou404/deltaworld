@@ -4,16 +4,22 @@ import cme.localization
 import cme.text
 import cme.view
 from cme import csscolor, key
-from cme.shapes import Batch, Rectangle
-from cme.sprite import AnimatedSprite, Scene, Sprite, SpriteList
+from cme.shapes import Batch, Rectangle, draw_xywh_rectangle_filled
+from cme.sprite import (AnimatedSprite, AnimatedWalkingSprite, Scene, Sprite,
+                        SpriteList)
 from cme.text import center_x, center_y
-from cme.texture import Texture, load_texture
+from cme.texture import (PymunkHitBoxAlgorithm, Texture, load_texture,
+                         load_texture_series)
+from cme.camera import Camera
 
 from .enums import Font
 from .paths import MAPS_PATH, TEXTURES_PATH
 
 if TYPE_CHECKING:
     from .window import Window
+
+
+MAP_SIZE = 608
 
 
 class MenuView(cme.view.FadingView):
@@ -446,7 +452,40 @@ class GameView(cme.view.FadingView):
     window: "Window"
 
     def setup(self) -> None:
-        self.current_map = "d1r1.tmx"
+        self.camera = Camera()
+        self.resize()
+        self.overdraw_cam = Camera()
+
+        self.setup_player()
+
+        self.current_map = "d1r1.tmj"
+        self.setup_map()
+
+    def resize(self):
+        self.on_resize(self.window.width, self.window.height)
+
+    def setup_player(self) -> None:
+        self.player = AnimatedWalkingSprite()
+        idle_textures = load_texture_series(
+            dir=TEXTURES_PATH / "player",
+            stem="player_idle_{i}.png",
+            range_=range(1, 3),
+            hit_box_algorithm=PymunkHitBoxAlgorithm(),
+        )
+        walking_textures = load_texture_series(
+            dir=TEXTURES_PATH / "player",
+            stem="player_idle_{i}.png",
+            range_=range(1, 3),
+            hit_box_algorithm=PymunkHitBoxAlgorithm(),
+        )
+        self.player.texture_add_idling(
+            list(map(lambda x: (x,), idle_textures))
+        )
+        self.player.texture_add_walking(
+            list(map(lambda x: (x,), walking_textures))
+        )
+        self.player.animation_speed = 1.0
+        self.player.set_idling()
 
     def load_current_map(self):
         self.tilemap = cme.tilemap.TileMap(
@@ -454,3 +493,61 @@ class GameView(cme.view.FadingView):
             use_spatial_hash=True
         )
         self.scene = Scene.from_tilemap(self.tilemap)
+
+    def setup_map(self):
+        self.load_current_map()
+        self.player.position = MAP_SIZE / 2, MAP_SIZE / 2
+        self.scene.add_sprite_list("enemies", use_spatial_hash=True)
+        self.scene.add_sprite_list("player", use_spatial_hash=True)
+        self.scene["player"].append(self.player)
+
+    def on_resize(self, width: int, height: int) -> None:
+        super().on_resize(width, height)
+
+        self.map_scale = (
+            width / MAP_SIZE if width < height else height / MAP_SIZE
+        )
+        self.camera.viewport = (
+            (self.window.width - MAP_SIZE * self.map_scale) / 2,
+            0,
+            MAP_SIZE * self.map_scale,
+            MAP_SIZE * self.map_scale,
+        )
+        self.camera.projection = (
+            0, MAP_SIZE, 0, MAP_SIZE
+        )
+        self.camera.update()
+
+    def on_update(self, delta_time: float) -> None:
+        super().on_update(delta_time)
+        self.player.update_animation()
+        self.player.update()
+        self.player.update_spatial_hash()
+        for sprite in self.scene["enemies"]:
+            sprite.update_animation()
+            sprite.update()
+            sprite.update_spatial_hash()
+
+    def on_draw(self) -> None:
+        # Overdraw with black as the Camera only draws to its viewport.
+        # Prevents issues with overlays from other apps.
+        self.overdraw_cam.use()
+        draw_xywh_rectangle_filled(
+            0,
+            0,
+            self.window.width,
+            self.window.height,
+            csscolor.BLACK,
+        )
+
+        self.camera.use()
+        super().on_draw()
+
+        self.scene.draw(pixelated=True)
+
+        self.draw_fading()
+
+    def on_show_view(self) -> None:
+        super().on_show_view()
+        self.window.background_color = csscolor.BLACK
+        self.start_fade_in()
