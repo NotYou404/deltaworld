@@ -1,21 +1,22 @@
 from typing import TYPE_CHECKING
 
+import cme.concurrency
 import cme.localization
+import cme.sound
 import cme.text
 import cme.view
 from cme import csscolor, key
+from cme.camera import Camera
 from cme.shapes import Batch, Rectangle, draw_xywh_rectangle_filled
-from cme.sprite import (AnimatedSprite, AnimatedWalkingSprite, Scene, Sprite,
-                        SpriteList)
+from cme.sprite import (AnimatedSprite, Scene, Sprite, SpriteList,
+                        check_for_collision, check_for_collision_with_list)
 from cme.text import center_x, center_y
 from cme.texture import (PymunkHitBoxAlgorithm, Texture, load_texture,
                          load_texture_series)
-from cme.camera import Camera
 
 from .enums import Font
-from .paths import MAPS_PATH, TEXTURES_PATH, MUSIC_PATH
-import cme.sound
-import cme.concurrency
+from .model import Player
+from .paths import MAPS_PATH, MUSIC_PATH, TEXTURES_PATH
 
 if TYPE_CHECKING:
     from .window import Window
@@ -488,7 +489,7 @@ class GameView(cme.view.FadingView):
         self.on_resize(self.window.width, self.window.height)
 
     def setup_player(self) -> None:
-        self.player = AnimatedWalkingSprite()
+        self.player = Player()
         idle_textures = load_texture_series(
             dir=TEXTURES_PATH / "player",
             stem="player_idle_{i}.png",
@@ -521,6 +522,10 @@ class GameView(cme.view.FadingView):
         self.load_current_map()
         self.player.position = MAP_SIZE / 2, MAP_SIZE / 2
         self.scene.add_sprite_list("enemies", use_spatial_hash=True)
+        self.scene.add_sprite_list(
+            "friendly_projectiles", use_spatial_hash=True)
+        self.scene.add_sprite_list(
+            "hostile_projectiles", use_spatial_hash=True)
         self.scene.add_sprite_list("player", use_spatial_hash=True)
         self.scene["player"].append(self.player)
 
@@ -543,13 +548,27 @@ class GameView(cme.view.FadingView):
 
     def on_update(self, delta_time: float) -> None:
         super().on_update(delta_time)
-        self.player.update_animation()
-        self.player.update()
-        self.player.update_spatial_hash()
-        for sprite in self.scene["enemies"]:
-            sprite.update_animation()
-            sprite.update()
-            sprite.update_spatial_hash()
+        self.scene.on_update(delta_time)
+        self.scene.update_animation(delta_time)
+        bullets = self.player.shoot()
+        if bullets:
+            self.scene["friendly_projectiles"].extend(bullets)
+
+        # Projectile collisions and out-of-bounds
+        for projectile in (
+            *self.scene["friendly_projectiles"],
+            *self.scene["hostile_projectiles"],
+        ):
+            if (
+                projectile.top < 0
+                or projectile.bottom > MAP_SIZE
+                or projectile.left < 0
+                or projectile.right > MAP_SIZE
+                or check_for_collision_with_list(
+                    projectile, self.scene["walls"]
+                )
+            ):
+                projectile.remove_from_sprite_lists()
 
     def on_draw(self) -> None:
         # Overdraw with black as the Camera only draws to its viewport.
@@ -569,6 +588,48 @@ class GameView(cme.view.FadingView):
         self.scene.draw(pixelated=True)
 
         self.draw_fading()
+
+    def on_key_press(self, symbol: int, modifiers: int):
+        super().on_key_press(symbol, modifiers)
+
+        if symbol == self.window.settings.controls.move_up:
+            self.player.up_pressed = True
+        elif symbol == self.window.settings.controls.move_down:
+            self.player.down_pressed = True
+        elif symbol == self.window.settings.controls.move_left:
+            self.player.left_pressed = True
+        elif symbol == self.window.settings.controls.move_right:
+            self.player.right_pressed = True
+        elif symbol == self.window.settings.controls.use_item:
+            self.player.use_item()
+        elif symbol == self.window.settings.controls.shoot_up:
+            self.player.shoot_up_pressed = True
+        elif symbol == self.window.settings.controls.shoot_down:
+            self.player.shoot_down_pressed = True
+        elif symbol == self.window.settings.controls.shoot_left:
+            self.player.shoot_left_pressed = True
+        elif symbol == self.window.settings.controls.shoot_right:
+            self.player.shoot_right_pressed = True
+
+    def on_key_release(self, symbol: int, modifiers: int):
+        super().on_key_release(symbol, modifiers)
+
+        if symbol == self.window.settings.controls.move_up:
+            self.player.up_pressed = False
+        elif symbol == self.window.settings.controls.move_down:
+            self.player.down_pressed = False
+        elif symbol == self.window.settings.controls.move_right:
+            self.player.right_pressed = False
+        elif symbol == self.window.settings.controls.move_left:
+            self.player.left_pressed = False
+        elif symbol == self.window.settings.controls.shoot_up:
+            self.player.shoot_up_pressed = False
+        elif symbol == self.window.settings.controls.shoot_down:
+            self.player.shoot_down_pressed = False
+        elif symbol == self.window.settings.controls.shoot_left:
+            self.player.shoot_left_pressed = False
+        elif symbol == self.window.settings.controls.shoot_right:
+            self.player.shoot_right_pressed = False
 
     def on_show_view(self) -> None:
         super().on_show_view()
