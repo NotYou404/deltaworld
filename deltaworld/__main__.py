@@ -8,6 +8,15 @@ from cme import logger
 
 
 def launch():
+    if cme.ACCELERATED:
+        from importlib import metadata
+        logger.debug(
+            f"arcade-accelerate v{metadata.version('arcade-accelerate')} "
+            "is running!"
+        )
+    else:
+        logger.warning("arcade-accelerate not running!")
+
     cme.localization.LangDict.set_languages_path(
         Path(__file__).parent / "langs"
     )
@@ -15,8 +24,8 @@ def launch():
     from .paths import FONTS_PATH
     cme.font.load_font(FONTS_PATH / "november" / "novem___.ttf")
 
-    from .window import Window
     from .views import MenuView
+    from .window import Window
 
     win = Window(
         title="Deltaworld",

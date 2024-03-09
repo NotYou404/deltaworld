@@ -1,1 +1,1 @@
--e "../Chilly Milly Engine/"
+-e "../Chilly Milly Engine/"[arcade-accelerate]
