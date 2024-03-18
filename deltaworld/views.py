@@ -99,7 +99,7 @@ class MenuView(cme.view.FadingView):
             start_x=0,
             start_y=0,
             color=csscolor.WHITE,
-            font_size=20,
+            font_size=24,
             font_name=Font.november,
             batch=self.text_batch,
         )
@@ -177,8 +177,11 @@ class MenuView(cme.view.FadingView):
         self.achievement_poor_spectre.center_y = self.achievement_lawyer.center_y  # noqa
         self.achievement_unique_playstyle.center_x = self.achievement_poor_spectre.center_x + 120  # noqa
         self.achievement_unique_playstyle.center_y = self.achievement_lawyer.center_y  # noqa
+        self.selected_achievement_text.set_optimal_font_size(
+            width=self.achievements_menu.width - 80, height=50, max_size=24
+        )
         self.selected_achievement_text.x = self.achievements_menu.center_x - self.selected_achievement_text.content_width / 2  # noqa
-        self.selected_achievement_text.y = self.achievements_menu.bottom + 80
+        self.selected_achievement_text.y = self.achievements_menu.bottom + 60
         self.achievements_close_text.x = self.achievements_menu.right - self.achievements_close_text.content_width - 20  # noqa
         self.achievements_close_text.y = self.achievements_menu.bottom - 40
         self.achievements_esc.right = self.achievements_close_text.x - 20
@@ -242,42 +245,6 @@ class MenuView(cme.view.FadingView):
             ),
             scale=2,
         )
-        self.achievement_text_lawyer = cme.text.Text(
-            text="",
-            start_x=0,
-            start_y=0,
-            color=csscolor.WHITE,
-            font_size=16,
-            font_name=Font.november,
-            batch=self.achievements_batch,
-        )
-        self.achievement_text_not_bug_feature = cme.text.Text(
-            text="",
-            start_x=0,
-            start_y=0,
-            color=csscolor.WHITE,
-            font_size=16,
-            font_name=Font.november,
-            batch=self.achievements_batch,
-        )
-        self.achievement_text_poor_spectre = cme.text.Text(
-            text="",
-            start_x=0,
-            start_y=0,
-            color=csscolor.WHITE,
-            font_size=16,
-            font_name=Font.november,
-            batch=self.achievements_batch,
-        )
-        self.achievement_text_unique_playstyle = cme.text.Text(
-            text="",
-            start_x=0,
-            start_y=0,
-            color=csscolor.WHITE,
-            font_size=16,
-            font_name=Font.november,
-            batch=self.achievements_batch,
-        )
         self.achievements_esc = Sprite(
             path_or_texture=TEXTURES_PATH / "[ESC].png",
         )
@@ -303,7 +270,7 @@ class MenuView(cme.view.FadingView):
             start_x=0,
             start_y=0,
             color=csscolor.WHITE,
-            font_size=18,
+            font_size=24,
             font_name=Font.november,
             batch=self.achievements_batch,
         )
@@ -501,7 +468,7 @@ class MenuView(cme.view.FadingView):
             start_x=0,
             start_y=0,
             color=csscolor.WHITE,
-            font_size=32,
+            font_size=36,
             font_name=Font.november,
             batch=self.settings_batch,
         )
@@ -556,7 +523,7 @@ class MenuView(cme.view.FadingView):
             start_x=0,
             start_y=0,
             color=csscolor.WHITE,
-            font_size=26,
+            font_size=24,
             font_name=Font.november,
             batch=self.settings_batch,
         )

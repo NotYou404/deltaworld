@@ -38,7 +38,7 @@ start_game = "Spiel Starten"
 options = "Optionen"
 quit = "Beenden"
 open_achievements_menu = "Erfolge Anzeigen"
-close_achievements_menu = "Schließen"
+close_achievements_menu = "Schliessen"
 
 # Options
 options_menu = "Optionen"
