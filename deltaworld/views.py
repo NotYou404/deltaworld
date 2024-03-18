@@ -183,6 +183,9 @@ class MenuView(cme.view.FadingView):
         self.achievements_close_text.y = self.achievements_menu.bottom - 40
         self.achievements_esc.right = self.achievements_close_text.x - 20
         self.achievements_esc.bottom = self.achievements_close_text.y
+        for achievement in self.achievements:
+            achievement.scale = 2
+        self.selected_achievement.scale = 2.4
 
     def create_achievements_menu(self):
         self.achievements_menu = Sprite(
@@ -374,7 +377,15 @@ class MenuView(cme.view.FadingView):
 
         elif symbol in (key.LEFT, key.RIGHT):
             if self.achievements_menu.visible:
-                ...  # TODO
+                cur_idx = self.achievements.index(self.selected_achievement)
+                if symbol == key.LEFT and cur_idx > 0:
+                    self.selected_achievement = self.achievements[cur_idx - 1]
+                elif symbol == key.RIGHT and cur_idx < len(
+                    self.achievements
+                ) - 1:
+                    self.selected_achievement = self.achievements[cur_idx + 1]
+                self.apply_language()
+                self.on_resize(self.window.width, self.window.height)
             elif self.settings_menu.visible:
                 if self.selected_setting == self.settings_lang_switch:
                     codes = cme.localization.LangDict.get_available_langcodes()
@@ -439,21 +450,26 @@ class MenuView(cme.view.FadingView):
         self.achievements_close_text.text = self.window.lang["close_achievements_menu"]  # noqa
         match self.selected_achievement:
             case self.achievement_lawyer:
-                self.selected_achievement_text.text = self.window.lang[
-                    "achievement_lawyer"
-                ]
+                if self.window.gamesave.achievement_lawyer:
+                    text = self.window.lang["achievement_lawyer"]
+                else:
+                    text = self.window.lang["question_marks"]
             case self.achievement_not_bug_feature:
-                self.selected_achievement_text.text = self.window.lang[
-                    "achievement_not_bug_feature"
-                ]
+                if self.window.gamesave.achievement_not_bug_feature:
+                    text = self.window.lang["achievement_not_bug_feature"]
+                else:
+                    text = self.window.lang["question_marks"]
             case self.achievement_poor_spectre:
-                self.selected_achievement_text.text = self.window.lang[
-                    "achievement_poor_spectre"
-                ]
+                if self.window.gamesave.achievement_poor_spectre:
+                    text = self.window.lang["achievement_poor_spectre"]
+                else:
+                    text = self.window.lang["question_marks"]
             case self.achievement_unique_playstyle:
-                self.selected_achievement_text.text = self.window.lang[
-                    "achievement_unique_playstyle"
-                ]
+                if self.window.gamesave.achievement_unique_playstyle:
+                    text = self.window.lang["achievement_unique_playstyle"]
+                else:
+                    text = self.window.lang["question_marks"]
+        self.selected_achievement_text.text = text
 
     def create_settings_menu(self):
         self.settings_entries = []
