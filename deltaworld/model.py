@@ -3,9 +3,10 @@ import time
 from typing import Any, Iterable, Optional
 
 import cme.utils
-from cme.sprite import AnimatedWalkingSprite, Sprite
+from cme.sprite import AnimatedWalkingSprite, Sprite, TopDownUpdater
 
 from .paths import TEXTURES_PATH
+from .constants import MAP_SIZE
 
 
 def speed(speed: float, factor: float = 140) -> float:
@@ -166,6 +167,8 @@ class Player(AnimatedWalkingSprite):
         self.shoot_up_pressed = False
         self.shoot_down_pressed = False
 
+        self.walls: Iterable[Sprite] = []
+
     def calc_facing_angle(self) -> int:
         if self.change_x == 0 and self.change_y == 0:
             return self.facing_angle  # Standing still
@@ -190,8 +193,10 @@ class Player(AnimatedWalkingSprite):
         elif self.change_x < 0 and self.change_y > 0:
             return 135  # Move top left
 
-    def on_update(self, delta_time: float) -> None:
-        super().on_update(delta_time)
+    def on_update(
+        self,
+        delta_time: float,
+    ) -> None:
 
         # Movement logic
         dir_horizontal = 0
@@ -230,6 +235,10 @@ class Player(AnimatedWalkingSprite):
                 self.change_x, self.change_y = cme.utils.calc_change_x_y(
                     speed(self.final_movement_speed), 315
                 )
+
+        super().on_update(
+            delta_time, TopDownUpdater(self.walls, (0, 0, MAP_SIZE, MAP_SIZE))
+        )
 
         # Set facing by walk direction
         self.facing_angle = self.calc_facing_angle()

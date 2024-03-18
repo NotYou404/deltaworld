@@ -1,3 +1,32 @@
+###############################################################################
+#                                                                             #
+#                           **Note to translators**                           #
+#                                                                             #
+#                                                                             #
+#  Dear Deltaworld translator. This is the english language file for the      #
+#  Deltaworld project. While translating, please note a few things:           #
+#    - Make sure you only modify values, not keys, not tables                 #
+#    - Please do not remove, modify or translate any comments                 #
+#    - Please do not change any meta keys                                     #
+#    - If you aren't familiar with the TOML format, reference is at toml.io   #
+#                                                                             #
+#  Here are some tips for translating:                                        #
+#    - Keep your language style close to the original                         #
+#    - Adapt to the game's theme                                              #
+#    - Use slurs, NSFW content, etc. only if present in the original          #
+#    - If you don't know what a word means, use a translator!                 #
+#       - Our recommendation: deepl.com                                       #
+#                                                                             #
+#                                                                             #
+#  If you have questions, contact the developers:                             #
+#    - GitHub: NotYou404                                                      #
+#    - Discord: thecheese_knife                                               #
+#                                                                             #
+#                                                                             #
+#                           Thanks for translating!                           #
+#                                                                             #
+###############################################################################
+
 [meta]
 langcode = "en_US"
 name = "English"
@@ -8,6 +37,8 @@ deltaworld = "Deltaworld"
 start_game = "Start Game"
 options = "Options"
 quit = "Quit"
+open_achievements_menu = "Open Achievements Menu"
+close_achievements_menu = "Close"
 
 # Options
 options_menu = "Options"
@@ -26,3 +57,14 @@ shoot_right = "Shoot right: {key}"
 use_item = "Use Item: {key}"
 back = "Back"
 press_any_key_to_rebind = "Press any key to rebind"
+
+# Achievements
+question_marks = "???"
+achievement_lawyer = "Lawyer"
+achievement_not_bug_feature = "It's not a Bug, it's a Feature"
+achievement_poor_spectre = "Poor Spectre"
+achievement_unique_playstyle = "Unique Playstyle"
+
+# Pause
+pause_continue = "Continue"
+pause_exit = "Exit"

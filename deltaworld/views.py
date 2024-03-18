@@ -2,27 +2,26 @@ from typing import TYPE_CHECKING
 
 import cme.concurrency
 import cme.localization
+import cme.shapes
 import cme.sound
 import cme.text
 import cme.view
-from cme import csscolor, key
+from cme import csscolor, key, types
 from cme.camera import Camera
 from cme.shapes import Batch, Rectangle, draw_xywh_rectangle_filled
 from cme.sprite import (AnimatedSprite, Scene, Sprite, SpriteList,
-                        check_for_collision, check_for_collision_with_list)
+                        check_for_collision_with_list)
 from cme.text import center_x, center_y
 from cme.texture import (PymunkHitBoxAlgorithm, Texture, load_texture,
                          load_texture_series)
 
+from .constants import MAP_SIZE
 from .enums import Font
 from .model import Player
 from .paths import MAPS_PATH, MUSIC_PATH, TEXTURES_PATH
 
 if TYPE_CHECKING:
     from .window import Window
-
-
-MAP_SIZE = 608
 
 
 class MenuView(cme.view.FadingView):
@@ -36,6 +35,7 @@ class MenuView(cme.view.FadingView):
         self.pixel_sprites = SpriteList()
         self.text_batch = Batch()
         self.settings_batch = Batch()
+        self.achievements_batch = Batch()
 
         self.header = cme.text.Text(
             text="",
@@ -92,9 +92,24 @@ class MenuView(cme.view.FadingView):
         self.pointer_left.animation_speed = 0.6
         self.pixel_sprites.extend([self.pointer_right, self.pointer_left])
 
+        self.achievements_a = Sprite(TEXTURES_PATH / "[a].png")
+        self.pixel_sprites.append(self.achievements_a)
+        self.achievements_text = cme.text.Text(
+            text="",
+            start_x=0,
+            start_y=0,
+            color=csscolor.WHITE,
+            font_size=20,
+            font_name=Font.november,
+            batch=self.text_batch,
+        )
+
         self.create_settings_menu()
         self.hide_settings_menu()
+        self.create_achievements_menu()
+        self.hide_achievements_menu()
         self.apply_language()
+        self.on_resize(self.window.width, self.window.height)
 
     def on_resize(self, width: int, height: int) -> None:
         center_x(self.header, width)
@@ -147,6 +162,157 @@ class MenuView(cme.view.FadingView):
         center_x(self.rebind_text, width)
         center_y(self.rebind_text, height)
 
+        self.achievements_text.x = width - self.achievements_text.content_width - 40  # noqa
+        self.achievements_text.y = 30
+        self.achievements_a.right = self.achievements_text.x - 20
+        self.achievements_a.bottom = self.achievements_text.y - 3
+
+        self.achievements_menu.center_x = width / 2
+        self.achievements_menu.center_y = height / 2
+        self.achievement_lawyer.center_x = self.achievements_menu.left + 120
+        self.achievement_lawyer.center_y = self.achievements_menu.center_y + 60
+        self.achievement_not_bug_feature.center_x = self.achievement_lawyer.center_x + 120  # noqa
+        self.achievement_not_bug_feature.center_y = self.achievement_lawyer.center_y  # noqa
+        self.achievement_poor_spectre.center_x = self.achievement_not_bug_feature.center_x + 120  # noqa
+        self.achievement_poor_spectre.center_y = self.achievement_lawyer.center_y  # noqa
+        self.achievement_unique_playstyle.center_x = self.achievement_poor_spectre.center_x + 120  # noqa
+        self.achievement_unique_playstyle.center_y = self.achievement_lawyer.center_y  # noqa
+        self.selected_achievement_text.x = self.achievements_menu.center_x - self.selected_achievement_text.width / 2  # noqa
+        self.selected_achievement_text.y = self.achievements_menu.bottom + 60
+        self.achievements_close_text.x = self.achievements_menu.right - self.achievements_close_text.content_width - 20  # noqa
+        self.achievements_close_text.y = self.achievements_menu.bottom - 40
+        self.achievements_esc.right = self.achievements_close_text.x - 20
+        self.achievements_esc.bottom = self.achievements_close_text.y
+        # TODO Fix achievements and text layout, make achievements grey textures more grey and less white
+
+    def create_achievements_menu(self):
+        self.achievements_menu = Sprite(
+            path_or_texture=load_texture(
+                TEXTURES_PATH / "menus" / "achievements.png"
+            ),
+            scale=20,
+        )
+        self.achievement_lawyer = Sprite(
+            path_or_texture=(
+                TEXTURES_PATH / (
+                    "achievement_lawyer" + (
+                        '_color.png'
+                        if self.window.gamesave.achievement_lawyer
+                        else '.png'
+                    )
+                )
+            ),
+            scale=2,
+        )
+        self.achievement_not_bug_feature = Sprite(
+            path_or_texture=(
+                TEXTURES_PATH / (
+                    "achievement_not_bug_feature" + (
+                        '_color.png'
+                        if self.window.gamesave.achievement_not_bug_feature
+                        else '.png'
+                    )
+                )
+            ),
+            scale=2,
+        )
+        self.achievement_poor_spectre = Sprite(
+            path_or_texture=(
+                TEXTURES_PATH / (
+                    "achievement_poor_spectre" + (
+                        '_color.png'
+                        if self.window.gamesave.achievement_poor_spectre
+                        else '.png'
+                    )
+                )
+            ),
+            scale=2,
+        )
+        self.achievement_unique_playstyle = Sprite(
+            path_or_texture=(
+                TEXTURES_PATH / (
+                    "achievement_unique_playstyle" + (
+                        '_color.png'
+                        if self.window.gamesave.achievement_unique_playstyle
+                        else '.png'
+                    )
+                )
+            ),
+            scale=2,
+        )
+        self.achievement_text_lawyer = cme.text.Text(
+            text="",
+            start_x=0,
+            start_y=0,
+            color=csscolor.WHITE,
+            font_size=16,
+            font_name=Font.november,
+            batch=self.achievements_batch,
+        )
+        self.achievement_text_not_bug_feature = cme.text.Text(
+            text="",
+            start_x=0,
+            start_y=0,
+            color=csscolor.WHITE,
+            font_size=16,
+            font_name=Font.november,
+            batch=self.achievements_batch,
+        )
+        self.achievement_text_poor_spectre = cme.text.Text(
+            text="",
+            start_x=0,
+            start_y=0,
+            color=csscolor.WHITE,
+            font_size=16,
+            font_name=Font.november,
+            batch=self.achievements_batch,
+        )
+        self.achievement_text_unique_playstyle = cme.text.Text(
+            text="",
+            start_x=0,
+            start_y=0,
+            color=csscolor.WHITE,
+            font_size=16,
+            font_name=Font.november,
+            batch=self.achievements_batch,
+        )
+        self.achievements_esc = Sprite(
+            path_or_texture=TEXTURES_PATH / "[ESC].png",
+        )
+        self.achievements_close_text = cme.text.Text(
+            text="",
+            start_x=0,
+            start_y=0,
+            color=csscolor.WHITE,
+            font_size=18,
+            font_name=Font.november,
+            batch=self.achievements_batch,
+        )
+        self.achievements = SpriteList()
+        self.achievements.extend([
+            self.achievement_lawyer,
+            self.achievement_not_bug_feature,
+            self.achievement_poor_spectre,
+            self.achievement_unique_playstyle,
+        ])
+        self.selected_achievement = self.achievement_lawyer
+        self.selected_achievement_text = cme.text.Text(
+            text="",
+            start_x=0,
+            start_y=0,
+            color=csscolor.WHITE,
+            font_size=16,
+            font_name=Font.november,
+            batch=self.achievements_batch,
+        )
+
+    def show_achievements_menu(self):
+        self.achievements_menu.visible = True
+        self.selected_achievement = self.achievement_lawyer
+
+    def hide_achievements_menu(self):
+        self.achievements_menu.visible = False
+
     def on_key_press(self, symbol: int, modifiers: int):
         super().on_key_press(symbol, modifiers)
         if self.rebind_overlay.visible:
@@ -162,7 +328,9 @@ class MenuView(cme.view.FadingView):
             return
 
         if symbol == key.UP:
-            if not self.settings_menu.visible:
+            if self.achievements_menu.visible:
+                return
+            elif not self.settings_menu.visible:
                 if self.selected_item == self.settings:
                     self.selected_item = self.start_game
                 elif self.selected_item == self.quit:
@@ -173,7 +341,9 @@ class MenuView(cme.view.FadingView):
                     self.selected_setting = self.settings_actions[idx - 1]
             self.on_resize(self.window.width, self.window.height)
         elif symbol == key.DOWN:
-            if not self.settings_menu.visible:
+            if self.achievements_menu.visible:
+                return
+            elif not self.settings_menu.visible:
                 if self.selected_item == self.start_game:
                     self.selected_item = self.settings
                 elif self.selected_item == self.settings:
@@ -184,7 +354,9 @@ class MenuView(cme.view.FadingView):
                     self.selected_setting = self.settings_actions[idx + 1]
             self.on_resize(self.window.width, self.window.height)
         elif symbol == key.ENTER:
-            if not self.settings_menu.visible:
+            if self.achievements_menu.visible:
+                return
+            elif not self.settings_menu.visible:
                 if self.selected_item == self.start_game:
                     self.next_view = GameView
                     self.start_fade_out()
@@ -202,9 +374,9 @@ class MenuView(cme.view.FadingView):
                     self.rebind_overlay.visible = True
 
         elif symbol in (key.LEFT, key.RIGHT):
-            if not self.settings_menu.visible:
-                pass
-            else:
+            if self.achievements_menu.visible:
+                ...  # TODO
+            elif self.settings_menu.visible:
                 if self.selected_setting == self.settings_lang_switch:
                     codes = cme.localization.LangDict.get_available_langcodes()
                     idx = codes.index(self.window.lang.langcode)
@@ -231,6 +403,17 @@ class MenuView(cme.view.FadingView):
                 else:  # Controls
                     pass  # Controls only react on Enter
 
+        elif symbol == key.ESCAPE:
+            self.hide_settings_menu()
+            self.hide_achievements_menu()
+
+        elif symbol == key.A:
+            if not self.settings_menu.visible:
+                if not self.achievements_menu.visible:
+                    self.show_achievements_menu()
+                else:
+                    self.hide_achievements_menu()
+
     def apply_language(self):
         self.header.text = self.window.lang["deltaworld"]
         self.start_game.text = self.window.lang["start_game"]
@@ -253,6 +436,25 @@ class MenuView(cme.view.FadingView):
             )
         self.settings_back.text = self.window.lang["back"]
         self.rebind_text.text = self.window.lang["press_any_key_to_rebind"]
+        self.achievements_text.text = self.window.lang["open_achievements_menu"]  # noqa
+        self.achievements_close_text.text = self.window.lang["close_achievements_menu"]  # noqa
+        match self.selected_achievement:
+            case self.achievement_lawyer:
+                self.selected_achievement_text.text = self.window.lang[
+                    "achievement_lawyer"
+                ]
+            case self.achievement_not_bug_feature:
+                self.selected_achievement_text.text = self.window.lang[
+                    "achievement_not_bug_feature"
+                ]
+            case self.achievement_poor_spectre:
+                self.selected_achievement_text.text = self.window.lang[
+                    "achievement_poor_spectre"
+                ]
+            case self.achievement_unique_playstyle:
+                self.selected_achievement_text.text = self.window.lang[
+                    "achievement_unique_playstyle"
+                ]
 
     def create_settings_menu(self):
         self.settings_entries = []
@@ -404,14 +606,11 @@ class MenuView(cme.view.FadingView):
             font_name=Font.november,
         )
 
-        self.on_resize(self.window.width, self.window.height)
-
     def show_settings_menu(self):
         self.settings_menu.visible = True
         self.settings_pointer_right.visible = True
         self.settings_pointer_left.visible = True
         self.selected_setting = self.settings_lang_switch
-        self.on_resize(self.window.width, self.window.height)
 
     def hide_settings_menu(self):
         self.settings_menu.visible = False
@@ -449,17 +648,27 @@ class MenuView(cme.view.FadingView):
         self.text_batch.draw()
         self.pixel_sprites.draw(pixelated=True)
 
-        # BUG This gets overdrawn by settings_menu, no matter the SpriteList
-        # order
-        self.settings_pointer_right.draw(pixelated=True)
-        self.settings_pointer_left.draw(pixelated=True)
-
         if self.settings_menu.visible:
+            draw_xywh_rectangle_filled(  # Shade over non-settings things
+                0, 0, self.window.width, self.window.height, (0, 0, 0, 200)
+            )
+            self.settings_menu.draw(pixelated=True)
+            self.settings_pointer_right.draw(pixelated=True)
+            self.settings_pointer_left.draw(pixelated=True)
             self.settings_batch.draw()
 
         if self.rebind_overlay.visible:
             self.rebind_overlay.draw()
             self.rebind_text.draw()
+
+        if self.achievements_menu.visible:
+            draw_xywh_rectangle_filled(  # Shade over non-achievements things
+                0, 0, self.window.width, self.window.height, (0, 0, 0, 200)
+            )
+            self.achievements_menu.draw(pixelated=True)
+            self.achievements.draw(pixelated=True)
+            self.achievements_batch.draw()
+            self.achievements_esc.draw(pixelated=True)
 
         self.draw_fading()
 
@@ -476,14 +685,91 @@ class GameView(cme.view.FadingView):
     window: "Window"
 
     def setup(self) -> None:
+        self._paused = False
+        self.pause_pixel_sprites = SpriteList()
+
         self.camera = Camera()
-        self.resize()
-        self.overdraw_cam = Camera()
+        self.gui_cam = Camera()
+
+        self.create_pause_menu()
+        self.hide_pause_menu()
 
         self.setup_player()
 
         self.current_map = "d1r1.tmj"
         self.setup_map()
+
+        self.apply_language()
+        self.resize()
+
+    def apply_language(self):
+        self.pause_continue.text = self.window.lang["pause_continue"]
+        self.pause_exit.text = self.window.lang["pause_exit"]
+
+    @property
+    def paused(self):
+        return self._paused
+
+    @paused.setter
+    def paused(self, value):
+        self._paused = value
+        if value:
+            self.show_pause_menu()
+        else:
+            self.hide_pause_menu()
+
+    def create_pause_menu(self):
+        self.pause_overlay = cme.shapes.create_rectangle(
+            center_x=self.window.width / 2,
+            center_y=self.window.height / 2,
+            width=self.window.width,
+            height=self.window.height,
+            color=(0, 0, 0, 150),
+        )
+        self.pause_text_batch = Batch()
+        self.pause_continue = cme.text.Text(
+            text="",
+            start_x=0,
+            start_y=0,
+            color=csscolor.WHITE,
+            font_size=24,
+            font_name=Font.november,
+            batch=self.pause_text_batch,
+        )
+        self.pause_exit = cme.text.Text(
+            text="",
+            start_x=0,
+            start_y=0,
+            color=csscolor.WHITE,
+            font_size=24,
+            font_name=Font.november,
+            batch=self.pause_text_batch,
+        )
+        self.pause_pointer_right = Sprite(
+            path_or_texture=load_texture(
+                TEXTURES_PATH / "pointer_right.png",
+            ),
+            scale=5,
+        )
+        self.pause_pointer_left = Sprite(
+            path_or_texture=load_texture(
+                TEXTURES_PATH / "pointer_left.png",
+            ),
+            scale=5,
+        )
+        self.pause_pixel_sprites.extend([
+            self.pause_pointer_left, self.pause_pointer_right
+        ])
+        self.pause_selected_item = self.pause_continue
+        self.resize()
+
+    def show_pause_menu(self):
+        self.pause_selected_item = self.pause_continue
+        self.resize()
+
+    def hide_pause_menu(self):
+        self.pause_selected_item = self.pause_continue
+        self.resize()
 
     def resize(self):
         self.on_resize(self.window.width, self.window.height)
@@ -528,6 +814,7 @@ class GameView(cme.view.FadingView):
             "hostile_projectiles", use_spatial_hash=True)
         self.scene.add_sprite_list("player", use_spatial_hash=True)
         self.scene["player"].append(self.player)
+        self.player.walls = self.scene["walls"]
 
     def on_resize(self, width: int, height: int) -> None:
         super().on_resize(width, height)
@@ -546,7 +833,20 @@ class GameView(cme.view.FadingView):
         )
         self.camera.update()
 
+        center_x(self.pause_continue, width)
+        self.pause_continue.y = height / 2 + 30
+        center_x(self.pause_exit, width)
+        self.pause_exit.y = self.pause_continue.y - 60
+
+        self.pause_pointer_right.center_x = self.pause_selected_item.left - 40
+        self.pause_pointer_right.center_y = self.pause_selected_item.y + self.pause_selected_item.content_height / 2  # noqa
+        self.pause_pointer_left.center_x = self.pause_selected_item.right + 40
+        self.pause_pointer_left.center_y = self.pause_selected_item.y + self.pause_selected_item.content_height / 2  # noqa
+
     def on_update(self, delta_time: float) -> None:
+        if self.paused:
+            return
+
         super().on_update(delta_time)
         self.scene.on_update(delta_time)
         self.scene.update_animation(delta_time)
@@ -571,9 +871,9 @@ class GameView(cme.view.FadingView):
                 projectile.remove_from_sprite_lists()
 
     def on_draw(self) -> None:
+        self.gui_cam.use()
         # Overdraw with black as the Camera only draws to its viewport.
         # Prevents issues with overlays from other apps.
-        self.overdraw_cam.use()
         draw_xywh_rectangle_filled(
             0,
             0,
@@ -589,8 +889,40 @@ class GameView(cme.view.FadingView):
 
         self.draw_fading()
 
+        self.gui_cam.use()
+        if self.paused:
+            self.pause_overlay.draw()
+            self.pause_text_batch.draw()
+            self.pause_pixel_sprites.draw(pixelated=True)
+
+    def back_to_main_menu(self):
+        self.paused = False
+        self.next_view = MenuView
+        self.start_fade_out()
+        self._fade_out = 255
+
     def on_key_press(self, symbol: int, modifiers: int):
         super().on_key_press(symbol, modifiers)
+
+        if symbol == key.ESCAPE:
+            self.paused = not self.paused
+
+        if self.paused:
+            if symbol == key.UP:
+                if self.pause_selected_item == self.pause_exit:
+                    self.pause_selected_item = self.pause_continue
+                    self.resize()
+            elif symbol == key.DOWN:
+                if self.pause_selected_item == self.pause_continue:
+                    self.pause_selected_item = self.pause_exit
+                    self.resize()
+            elif symbol == key.ENTER:
+                if self.pause_selected_item == self.pause_continue:
+                    self.paused = not self.paused
+                else:
+                    self.back_to_main_menu()
+
+            return
 
         if symbol == self.window.settings.controls.move_up:
             self.player.up_pressed = True

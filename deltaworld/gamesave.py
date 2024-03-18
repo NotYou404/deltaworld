@@ -15,6 +15,10 @@ class GameSave(cme.resource_.PickleGameSave):
         self,
         finished_normal: bool,
         finished_hard: bool,
+        achievement_lawyer: bool,
+        achievement_not_bug_feature: bool,
+        achievement_poor_spectre: bool,
+        achievement_unique_playstyle: bool,
     ):
         """
         :param finished_normal: Wether normal mode has been completed
@@ -24,6 +28,10 @@ class GameSave(cme.resource_.PickleGameSave):
         """
         self.finished_normal = finished_normal
         self.finished_hard = finished_hard
+        self.achievement_lawyer = achievement_lawyer
+        self.achievement_not_bug_feature = achievement_not_bug_feature
+        self.achievement_poor_spectre = achievement_poor_spectre
+        self.achievement_unique_playstyle = achievement_unique_playstyle
 
     @staticmethod
     def defaults() -> dict[str, Any]:
@@ -36,6 +44,10 @@ class GameSave(cme.resource_.PickleGameSave):
         return {
             "finished_normal": False,
             "finished_hard": False,
+            "achievement_lawyer": False,
+            "achievement_not_bug_feature": False,
+            "achievement_poor_spectre": False,
+            "achievement_unique_playstyle": False,
         }
 
     def update(self, **kwargs: Mapping[str, Any]) -> None:
