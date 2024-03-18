@@ -170,20 +170,19 @@ class MenuView(cme.view.FadingView):
         self.achievements_menu.center_x = width / 2
         self.achievements_menu.center_y = height / 2
         self.achievement_lawyer.center_x = self.achievements_menu.left + 120
-        self.achievement_lawyer.center_y = self.achievements_menu.center_y + 60
+        self.achievement_lawyer.center_y = self.achievements_menu.center_y + 30
         self.achievement_not_bug_feature.center_x = self.achievement_lawyer.center_x + 120  # noqa
         self.achievement_not_bug_feature.center_y = self.achievement_lawyer.center_y  # noqa
         self.achievement_poor_spectre.center_x = self.achievement_not_bug_feature.center_x + 120  # noqa
         self.achievement_poor_spectre.center_y = self.achievement_lawyer.center_y  # noqa
         self.achievement_unique_playstyle.center_x = self.achievement_poor_spectre.center_x + 120  # noqa
         self.achievement_unique_playstyle.center_y = self.achievement_lawyer.center_y  # noqa
-        self.selected_achievement_text.x = self.achievements_menu.center_x - self.selected_achievement_text.width / 2  # noqa
-        self.selected_achievement_text.y = self.achievements_menu.bottom + 60
+        self.selected_achievement_text.x = self.achievements_menu.center_x - self.selected_achievement_text.content_width / 2  # noqa
+        self.selected_achievement_text.y = self.achievements_menu.bottom + 80
         self.achievements_close_text.x = self.achievements_menu.right - self.achievements_close_text.content_width - 20  # noqa
         self.achievements_close_text.y = self.achievements_menu.bottom - 40
         self.achievements_esc.right = self.achievements_close_text.x - 20
         self.achievements_esc.bottom = self.achievements_close_text.y
-        # TODO Fix achievements and text layout, make achievements grey textures more grey and less white
 
     def create_achievements_menu(self):
         self.achievements_menu = Sprite(
@@ -301,7 +300,7 @@ class MenuView(cme.view.FadingView):
             start_x=0,
             start_y=0,
             color=csscolor.WHITE,
-            font_size=16,
+            font_size=18,
             font_name=Font.november,
             batch=self.achievements_batch,
         )
