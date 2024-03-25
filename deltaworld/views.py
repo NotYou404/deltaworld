@@ -17,6 +17,7 @@ from cme.texture import (PymunkHitBoxAlgorithm, Texture, load_texture,
 
 from .constants import MAP_SIZE
 from .enums import Font
+from .gamesave import UnfinishedRun
 from .model import Player
 from .paths import MAPS_PATH, MUSIC_PATH, TEXTURES_PATH
 
@@ -44,7 +45,7 @@ class MenuView(cme.view.FadingView):
             color=csscolor.WHITE,
             font_size=72,
             font_name=Font.november,
-            batch=self.text_batch
+            batch=self.text_batch,
         )
         self.start_game = cme.text.Text(
             text="",
@@ -53,8 +54,20 @@ class MenuView(cme.view.FadingView):
             color=csscolor.WHITE,
             font_size=24,
             font_name=Font.november,
-            batch=self.text_batch
+            batch=self.text_batch,
         )
+        if self.window.gamesave.unfinished_run:
+            self.resume_game = cme.text.Text(
+                text="",
+                x=0,
+                y=0,
+                color=csscolor.WHITE,
+                font_size=24,
+                font_name=Font.november,
+                batch=self.text_batch,
+            )
+        else:
+            self.resume_game = None
         self.settings = cme.text.Text(
             text="",
             x=0,
@@ -62,7 +75,7 @@ class MenuView(cme.view.FadingView):
             color=csscolor.WHITE,
             font_size=24,
             font_name=Font.november,
-            batch=self.text_batch
+            batch=self.text_batch,
         )
         self.quit = cme.text.Text(
             text="",
@@ -71,9 +84,14 @@ class MenuView(cme.view.FadingView):
             color=csscolor.WHITE,
             font_size=24,
             font_name=Font.november,
-            batch=self.text_batch
+            batch=self.text_batch,
         )
         self.selected_item = self.start_game
+        self.main_menu_items = [
+            i for i in [
+                self.start_game, self.resume_game, self.settings, self.quit
+            ] if i
+        ]
 
         void = Texture.create_empty("void", size=(1, 1))
         self.pointer_right = AnimatedSprite(scale=5)
@@ -116,8 +134,14 @@ class MenuView(cme.view.FadingView):
         self.header.y = height / 1.4
         center_x(self.start_game, width)
         self.start_game.y = height / 2.4
-        center_x(self.settings, width)
-        self.settings.y = self.start_game.y - 50
+        if self.resume_game:
+            center_x(self.resume_game, width)
+            self.resume_game.y = self.start_game.y - 50
+            center_x(self.settings, width)
+            self.settings.y = self.resume_game.y - 50
+        else:
+            center_x(self.settings, width)
+            self.settings.y = self.start_game.y - 50
         center_x(self.quit, width)
         self.quit.y = self.settings.y - 50
 
@@ -300,10 +324,9 @@ class MenuView(cme.view.FadingView):
             if self.achievements_menu.visible:
                 return
             elif not self.settings_menu.visible:
-                if self.selected_item == self.settings:
-                    self.selected_item = self.start_game
-                elif self.selected_item == self.quit:
-                    self.selected_item = self.settings
+                idx = self.main_menu_items.index(self.selected_item)
+                if idx != 0:
+                    self.selected_item = self.main_menu_items[idx - 1]
             else:
                 idx = self.settings_actions.index(self.selected_setting)
                 if idx != 0:
@@ -313,10 +336,9 @@ class MenuView(cme.view.FadingView):
             if self.achievements_menu.visible:
                 return
             elif not self.settings_menu.visible:
-                if self.selected_item == self.start_game:
-                    self.selected_item = self.settings
-                elif self.selected_item == self.settings:
-                    self.selected_item = self.quit
+                idx = self.main_menu_items.index(self.selected_item)
+                if idx != len(self.main_menu_items) - 1:
+                    self.selected_item = self.main_menu_items[idx + 1]
             else:
                 idx = self.settings_actions.index(self.selected_setting)
                 if idx != len(self.settings_actions) - 1:
@@ -327,6 +349,10 @@ class MenuView(cme.view.FadingView):
                 return
             elif not self.settings_menu.visible:
                 if self.selected_item == self.start_game:
+                    self.window.gamesave.unfinished_run = None
+                    self.next_view = GameView
+                    self.start_fade_out()
+                elif self.selected_item == self.resume_game:
                     self.next_view = GameView
                     self.start_fade_out()
                 elif self.selected_item == self.settings:
@@ -394,6 +420,8 @@ class MenuView(cme.view.FadingView):
     def apply_language(self):
         self.header.text = self.window.lang["deltaworld"]
         self.start_game.text = self.window.lang["start_game"]
+        if self.resume_game:
+            self.resume_game.text = self.window.lang["resume_game"]
         self.settings.text = self.window.lang["options"]
         self.quit.text = self.window.lang["quit"]
         self.settings_menu_header.text = self.window.lang["options_menu"]
@@ -678,7 +706,16 @@ class GameView(cme.view.FadingView):
 
         self.setup_player()
 
-        self.current_map = "d1r1.tmj"
+        if self.window.gamesave.unfinished_run:
+            unfinished_run = self.window.gamesave.unfinished_run
+            self.current_map = unfinished_run.map
+            self.player.armor = unfinished_run.armor
+            self.player.gun = unfinished_run.gun
+            self.player.ammo = unfinished_run.ammo
+            self.player.stored_item = unfinished_run.stored_item
+            self.player.res_coins = unfinished_run.res_coins
+        else:
+            self.current_map = "d1r1"
         self.setup_map()
 
         self.apply_language()
@@ -687,6 +724,9 @@ class GameView(cme.view.FadingView):
     def apply_language(self):
         self.pause_continue.text = self.window.lang["pause_continue"]
         self.pause_exit.text = self.window.lang["pause_exit"]
+        self.pause_exit_without_saving.text = self.window.lang[
+            "pause_exit_without_saving"
+        ]
 
     @property
     def paused(self):
@@ -719,6 +759,15 @@ class GameView(cme.view.FadingView):
             batch=self.pause_text_batch,
         )
         self.pause_exit = cme.text.Text(
+            text="",
+            x=0,
+            y=0,
+            color=csscolor.WHITE,
+            font_size=24,
+            font_name=Font.november,
+            batch=self.pause_text_batch,
+        )
+        self.pause_exit_without_saving = cme.text.Text(
             text="",
             x=0,
             y=0,
@@ -781,7 +830,7 @@ class GameView(cme.view.FadingView):
 
     def load_current_map(self):
         self.tilemap = cme.tilemap.TileMap(
-            MAPS_PATH / self.current_map,
+            MAPS_PATH / (self.current_map + ".tmj"),
             use_spatial_hash=True
         )
         self.scene = Scene.from_tilemap(self.tilemap)
@@ -819,6 +868,8 @@ class GameView(cme.view.FadingView):
         self.pause_continue.y = height / 2 + 30
         center_x(self.pause_exit, width)
         self.pause_exit.y = self.pause_continue.y - 60
+        center_x(self.pause_exit_without_saving, width)
+        self.pause_exit_without_saving.y = self.pause_exit.y - 60
 
         self.pause_pointer_right.center_x = self.pause_selected_item.left - 40
         self.pause_pointer_right.center_y = self.pause_selected_item.y + self.pause_selected_item.content_height / 2  # noqa
@@ -881,7 +932,7 @@ class GameView(cme.view.FadingView):
         self.paused = False
         self.next_view = MenuView
         self.start_fade_out()
-        self._fade_out = 255
+        self._fade_out = 255  # Skip fading
 
     def on_key_press(self, symbol: int, modifiers: int):
         super().on_key_press(symbol, modifiers)
@@ -893,15 +944,32 @@ class GameView(cme.view.FadingView):
             if symbol == key.UP:
                 if self.pause_selected_item == self.pause_exit:
                     self.pause_selected_item = self.pause_continue
-                    self.resize()
+                elif (
+                    self.pause_selected_item == self.pause_exit_without_saving
+                ):
+                    self.pause_selected_item = self.pause_exit
+                self.resize()
             elif symbol == key.DOWN:
                 if self.pause_selected_item == self.pause_continue:
                     self.pause_selected_item = self.pause_exit
-                    self.resize()
+                elif self.pause_selected_item == self.pause_exit:
+                    self.pause_selected_item = self.pause_exit_without_saving
+                self.resize()
             elif symbol == key.ENTER:
                 if self.pause_selected_item == self.pause_continue:
                     self.paused = not self.paused
+                elif (self.pause_selected_item == self.pause_exit):
+                    self.window.gamesave.unfinished_run = UnfinishedRun(
+                        self.current_map,
+                        self.player.armor,
+                        self.player.gun,
+                        self.player.ammo,
+                        self.player.stored_item,
+                        self.player.res_coins,
+                    )
+                    self.back_to_main_menu()
                 else:
+                    self.window.gamesave.unfinished_run = None
                     self.back_to_main_menu()
 
             return
