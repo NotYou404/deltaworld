@@ -126,7 +126,7 @@ class Settings(cme.resource_.Settings):
         """
         return {
             "langcode": "en_US",
-            "volume": 100,
+            "volume": 1,
             "controls": Controls.with_defaults().serialize(),
         }
 
@@ -150,7 +150,7 @@ class Settings(cme.resource_.Settings):
 
 
 class Controls:
-    """
+    """00
     A class to represent a state of internal controls to physical keys.
     """
     def __init__(
