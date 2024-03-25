@@ -6,7 +6,7 @@ import cme.shapes
 import cme.sound
 import cme.text
 import cme.view
-from cme import csscolor, key, types
+from cme import csscolor, key
 from cme.camera import Camera
 from cme.shapes import Batch, Rectangle, draw_xywh_rectangle_filled
 from cme.sprite import (AnimatedSprite, Scene, Sprite, SpriteList,
@@ -39,8 +39,8 @@ class MenuView(cme.view.FadingView):
 
         self.header = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=72,
             font_name=Font.november,
@@ -48,8 +48,8 @@ class MenuView(cme.view.FadingView):
         )
         self.start_game = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=24,
             font_name=Font.november,
@@ -57,8 +57,8 @@ class MenuView(cme.view.FadingView):
         )
         self.settings = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=24,
             font_name=Font.november,
@@ -66,8 +66,8 @@ class MenuView(cme.view.FadingView):
         )
         self.quit = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=24,
             font_name=Font.november,
@@ -92,12 +92,12 @@ class MenuView(cme.view.FadingView):
         self.pointer_left.animation_speed = 0.6
         self.pixel_sprites.extend([self.pointer_right, self.pointer_left])
 
-        self.achievements_a = Sprite(TEXTURES_PATH / "[a].png")
+        self.achievements_a = Sprite(TEXTURES_PATH / "[A].png")
         self.pixel_sprites.append(self.achievements_a)
         self.achievements_text = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=24,
             font_name=Font.november,
@@ -250,8 +250,8 @@ class MenuView(cme.view.FadingView):
         )
         self.achievements_close_text = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=18,
             font_name=Font.november,
@@ -267,8 +267,8 @@ class MenuView(cme.view.FadingView):
         self.selected_achievement = self.achievement_lawyer
         self.selected_achievement_text = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=24,
             font_name=Font.november,
@@ -465,8 +465,8 @@ class MenuView(cme.view.FadingView):
 
         self.settings_menu_header = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=36,
             font_name=Font.november,
@@ -474,8 +474,8 @@ class MenuView(cme.view.FadingView):
         )
         self.settings_tooltip = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=18,
             font_name=Font.november,
@@ -483,8 +483,8 @@ class MenuView(cme.view.FadingView):
         )
         self.settings_lang_label = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=18,
             font_name=Font.november,
@@ -492,8 +492,8 @@ class MenuView(cme.view.FadingView):
         )
         self.settings_lang_switch = cme.text.Text(
             text=self.window.lang.name,
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=18,
             font_name=Font.november,
@@ -502,8 +502,8 @@ class MenuView(cme.view.FadingView):
         self.selected_setting = self.settings_lang_switch
         self.settings_volume_label = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=18,
             font_name=Font.november,
@@ -511,8 +511,8 @@ class MenuView(cme.view.FadingView):
         )
         self.settings_volume_switch = cme.text.Text(
             text=str(int(self.window.settings.volume * 100)),
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=18,
             font_name=Font.november,
@@ -520,8 +520,8 @@ class MenuView(cme.view.FadingView):
         )
         self.settings_controls_label = cme.text.Text(
             text=self.window.lang["controls"],
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=24,
             font_name=Font.november,
@@ -535,8 +535,8 @@ class MenuView(cme.view.FadingView):
             self.settings_controls.append(
                 obj := cme.text.Text(
                     text="",
-                    start_x=0,
-                    start_y=0,
+                    x=0,
+                    y=0,
                     color=csscolor.WHITE,
                     font_size=18,
                     font_name=Font.november,
@@ -547,8 +547,8 @@ class MenuView(cme.view.FadingView):
 
         self.settings_back = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=18,
             font_name=Font.november,
@@ -581,8 +581,8 @@ class MenuView(cme.view.FadingView):
         self.rebind_overlay.visible = False
         self.rebind_text = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=36,
             font_name=Font.november,
@@ -711,8 +711,8 @@ class GameView(cme.view.FadingView):
         self.pause_text_batch = Batch()
         self.pause_continue = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=24,
             font_name=Font.november,
@@ -720,8 +720,8 @@ class GameView(cme.view.FadingView):
         )
         self.pause_exit = cme.text.Text(
             text="",
-            start_x=0,
-            start_y=0,
+            x=0,
+            y=0,
             color=csscolor.WHITE,
             font_size=24,
             font_name=Font.november,
