@@ -1,1 +1,1 @@
--e "../Chilly Milly Engine/"[arcade-accelerate]
+-e "../chillymillyengine/"[arcade-accelerate] --config-settings editable_mode=strict

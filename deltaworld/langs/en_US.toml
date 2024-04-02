@@ -35,6 +35,7 @@ name = "English"
 # Main Menu
 deltaworld = "Deltaworld"
 start_game = "Start Game"
+resume_game = "Resume Game"
 options = "Options"
 quit = "Quit"
 open_achievements_menu = "Open Achievements Menu"
@@ -68,3 +69,4 @@ achievement_unique_playstyle = "Unique Playstyle"
 # Pause
 pause_continue = "Continue"
 pause_exit = "Exit"
+pause_exit_without_saving = "Exit without saving"
