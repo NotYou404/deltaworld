@@ -72,7 +72,6 @@ class Window(cme.window.Window):
             self.gamesave = GameSave.with_defaults()
         except (UnpicklingError, EOFError):
             logger.critical("Game save file corrupt or empty.", exc_info=True)
-            raise
 
     def set_language(self, langcode: str) -> None:
         """

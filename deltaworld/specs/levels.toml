@@ -1,0 +1,39 @@
+# Define what mobs appear in a level, and how often.
+
+# Inline table mapping mob to probability from 0 to 1.
+mobs_probabilities = { mob1 = 0.8, mob2 = 0.15, mobn = 0.05 }
+
+# Inline table for defining extra mobs. Mapping mob to
+# another mapping, that maps individual rooms to the
+# amount the extra mob appears in.
+mobs_extras = { mob1 = { 1 = 2, 2 = 3, n = 4 }, mob2 = { 2 = 3, 4 = 5 } }
+
+
+# Define wave informations.
+
+# Specify information for every wave. Array of arrays
+# that consist of two values: The amount of mobs in
+# the wave and the duration in seconds. Alternatively,
+# the first value may also be a string. More information
+# above the `special_waves` inline table.
+waves = [
+    [ # 4 hostiles, 2 seconds duration
+        4,
+        2,
+    ],
+    [ # 6 hostiles, 4 seconds duration
+        6,
+        4,
+    ],
+    [ # special wave labeled `extra_fun`, 3 seconds duration
+        "extra_fun",
+        3,
+    ],
+] # 3 waves
+
+# Special waves not following the in `mobs_probabilities`
+# defined distribution scheme. Inline table mapping the
+# in `waves` defined special waves to another inline
+# table, that maps the mob name to it's amount in the
+# wave.
+special_waves = { extra_fun = { mob1 = 2, mob2 = 3, mobn = 1 } }

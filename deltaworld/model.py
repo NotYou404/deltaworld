@@ -1,12 +1,31 @@
 import math
+import multiprocessing
+import random
 import time
+import tomllib
+from collections import deque
+from multiprocessing import Process
+from pathlib import Path
 from typing import Any, Iterable, Optional
 
 import cme.utils
-from cme.sprite import AnimatedWalkingSprite, Sprite, TopDownUpdater
+from cme import types
+from cme.concurrency import start_worker_process
+from cme.pathfinding import AStarBarrierList, astar_calculate_path
+from cme.sprite import (AnimatedSprite, AnimatedWalkingSprite, SimpleUpdater,
+                        Sprite, SpriteList, TopDownUpdater)
+from cme.texture import load_texture
 
+from .constants import MAP_SIZE, TILE_SIZE
 from .paths import TEXTURES_PATH
-from .constants import MAP_SIZE
+
+
+def get_tile_center_of_point(point: types.Point):
+    for tile_x in range(0, MAP_SIZE, TILE_SIZE):
+        for tile_y in range(0, MAP_SIZE, TILE_SIZE):
+            rect = (tile_x, tile_y, TILE_SIZE, TILE_SIZE)
+            if cme.utils.point_in_rect(*point, rect=rect):
+                return (tile_x + TILE_SIZE / 2, tile_y + TILE_SIZE / 2)
 
 
 def speed(speed: float, factor: float = 140) -> float:
@@ -37,6 +56,107 @@ def find_with_class(iter: Iterable, cls: type | tuple[type]) -> Optional[Any]:
     for obj in iter:
         if isinstance(obj, cls):
             return obj
+
+
+def calc_path(
+    sprite: Sprite,
+    target_point: types.Point,
+    walls: SpriteList,
+) -> list[types.Point]:
+    barrier_list = AStarBarrierList(
+        moving_sprite=sprite,
+        blocking_sprites=walls,
+        grid_size=TILE_SIZE,
+        left=0,
+        right=MAP_SIZE,
+        bottom=0,
+        top=MAP_SIZE,
+    )
+    sprite.testing = barrier_list
+    return astar_calculate_path(
+        start_point=(sprite.center_x, sprite.center_y),
+        end_point=get_tile_center_of_point(target_point),
+        astar_barrier_list=barrier_list,
+    )
+
+
+class Level:
+    def __init__(self, path: Path | str):
+        """
+        :param path: Path to the toml specs file.
+        :type path: Path | str
+        """
+        with open(path, mode="rb") as fp:
+            specs = tomllib.load(fp)
+
+        self.mobs_probabilities: dict[str, float] = specs["mobs_probabilities"]
+        self.mobs_extras: dict[str, dict[str, int]] = specs["mobs_extras"]
+        self.waves: list[tuple[str | int, int]] = specs["waves"]
+        self.special_waves: dict[str, dict[str, int]] = specs["special_waves"]
+
+        self.current_wave = 0
+        self.last_wave = len(self.waves) - 1
+
+    def _calculate_wave_distribution(self, wave: int) -> list[str]:
+        """
+        Calculate the mob distribution for a given wave by defined
+        probabilities (randomized).
+
+        :param wave: Wave index
+        :type wave: int
+        :raises RuntimeError: Wave is a special wave
+        :return: List of mob names
+        :rtype: list[str]
+        """
+        mobs = self.waves[wave][0]
+        if isinstance(mobs, str):
+            raise RuntimeError("Cannot calculate special wave")
+        return random.choices(
+            population=list(self.mobs_probabilities.keys()),
+            weights=self.mobs_probabilities.values(),
+            k=mobs,
+        )
+
+    def _get_special_wave_distribution(self, wave: int) -> list[str]:
+        """
+        Get a list of mob names for special waves.
+
+        :param wave: Wave index
+        :type wave: int
+        :raises RuntimeError: The specified wave is not a special wave.
+        :return: List of mob names
+        :rtype: list[str]
+        """
+        name = self.waves[wave][0]
+        if not isinstance(name, str):
+            raise RuntimeError(f"Wave {wave} is not a special wave")
+        mobs = []
+        for mob, i in self.special_waves[name].items():
+            mobs.extend([mob] * i)
+        random.shuffle(mobs)
+        return mobs
+
+    def next_wave(self) -> list[str]:
+        """
+        Returns a list of mobs that should appear in the current wave.
+        This automatically goes to the next wave, raising a RuntimeError when
+        waves are exhausted.
+
+        :raises RuntimeError: There are no more waves left.
+        :return: A list of mob names to appear in the next wave.
+        :rtype: list[str]
+        """
+        if self.current_wave > self.last_wave:
+            raise RuntimeError(
+                "There are no more waves defined for this level."
+            )
+        wave = self.waves[self.current_wave]
+        if isinstance(wave[0], str):
+            dist = self._get_special_wave_distribution(self.current_wave)
+        else:
+            dist = self._calculate_wave_distribution(self.current_wave)
+        self.current_wave += 1
+        return dist
 
 
 class Upgrade:
@@ -136,8 +256,120 @@ class Bullet(Sprite):
             **kwargs
         )
         self.damage = damage
-        self.penetration = penetration  # Kept for statistic
         self.remaining_penetration = penetration
+
+
+class Hostile(AnimatedSprite):
+    HP: int
+    BASE_SPEED: float
+
+    def __init__(self, player: Sprite, walls: SpriteList, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.player = player
+        self.walls = walls
+        self.hp = self.HP
+        self.can_attack = True
+        self.last_attack = 0
+        self.player_moved = True
+        self.attack_cooldown = 0
+        self.next_point: Optional[types.Point] = None
+        self.path_queue: Optional[deque] = None
+        self.path_pending = False
+        self.pending_path_queue: Optional[multiprocessing.Queue] = None
+        self.path_calc_process: Optional[Process] = None
+
+    @property
+    def speed(self):
+        return self.BASE_SPEED
+
+    def on_update(self, delta_time: float) -> None:
+        super().on_update(
+            delta_time,
+            SimpleUpdater(),
+        )
+
+        if self.path_pending and not self.pending_path_queue.empty():
+            self.path_pending = False
+            self._process_path(self.pending_path_queue.get())
+
+        if any([self.player.change_x, self.player.change_y]):
+            self.player_moved = True
+        else:
+            self.player_moved = False
+
+        if (
+            self.can_attack
+            and time.time() - self.last_attack >= self.attack_cooldown
+        ):
+            self.attack()
+            self.last_attack = time.time()
+
+        if self.next_point:
+            at_point_x = False
+            at_point_y = False
+            if abs(self.center_x - self.next_point[0]) <= abs(
+                self.change_x * delta_time
+            ):
+                self.center_x = self.next_point[0]
+                self.change_x = 0
+                at_point_x = True
+            if abs(self.center_y - self.next_point[1]) <= abs(
+                self.change_y * delta_time
+            ):
+                self.center_y = self.next_point[1]
+                self.change_y = 0
+                at_point_y = True
+            if all([at_point_x, at_point_y]):
+                self.next_point = None
+
+        if self.next_point is None and self.path_queue:
+            self.next_point = self.path_queue.pop()
+            angle = cme.utils.calc_angle(self.center, self.next_point)
+            self.change_x, self.change_y = cme.utils.calc_change_x_y(
+                speed(self.speed), angle
+            )
+
+    def _walk_to_point(self, point):
+        if self.path_pending:
+            return
+        self.path_pending = True
+        self.pending_path_queue = start_worker_process(
+            target=calc_path,
+            args=(self, point, self.walls),
+            daemon=True,
+        )
+
+    def _process_path(self, path):
+        if path is not None:
+            self.path_queue = deque(reversed(path))
+            if self.next_point:
+                # We don't want to take the first step when we are walking
+                # already, as sprite would go back and forth
+                self.path_queue.pop()
+
+    def _walk_to_player(self):
+        if not self.path_queue or self.player_moved:
+            self._walk_to_point((self.player.center_x, self.player.center_y))
+
+    def attack(self) -> None:
+        raise NotImplementedError
+
+
+class Zombie(Hostile):
+    """Slow creature with low health. Kills on collision."""
+    HP = 1
+    BASE_SPEED = 0.5
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.attack_cooldown = 0.6
+        self.add_texture(
+            load_texture(TEXTURES_PATH.get("zombie_default.png")), "idling"
+        )
+        self.state = "idling"
+
+    def attack(self) -> None:
+        self._walk_to_player()
 
 
 class Player(AnimatedWalkingSprite):
@@ -424,3 +656,31 @@ class Player(AnimatedWalkingSprite):
         if item := find_with_class(self.active_items, Pressurer):
             speed *= item.BULLET_SPEED_MOD
         return speed
+
+
+MOB_NAME_TO_MOB = {
+    "zombie": Zombie,
+    # "giant": Giant,
+    # "mosquito": Mosquito,
+    # "fire_zombie": FireZombie,
+    # "fire_atronach": FireAtronach,
+    # "hellcrab": Hellcrab,
+    # "fire_spirit": FireSpirit,
+    # "blaze": Blaze,
+    # "rotten_soul": RottenSoul,
+    # "mummy": Mummy,
+    # "skeleton_puppy": SkeletonPuppy,
+    # "soul_sniper": SoulSniper,
+    # "soul_crawler": SoulCrawler,
+    # "haunted_spectre": HauntedSpectre,
+    # "illuminati_mage": IlluminatiMage,
+    # "illuminati_sniper": IlluminatiSniper,
+    # "illuminati_striker": IlluminatiStriker,
+    # "illuminati_summoner": IlluminatiSummoner,
+    # "illuminati_inferno": IlluminatiInferno,
+    # "mean_illuminati": MeanIlluminati,
+    # "dwarf_trio": DwarfTrio,
+    # "blaze_queen": BlazeQueen,
+    # "ghost_pirate_jake": GhostPirateJake,
+    # "delta": Delta,
+}

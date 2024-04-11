@@ -1,3 +1,7 @@
+import contextlib
+import os
+import random
+import time
 from typing import TYPE_CHECKING
 
 import cme.concurrency
@@ -5,6 +9,7 @@ import cme.localization
 import cme.shapes
 import cme.sound
 import cme.text
+import cme.utils
 import cme.view
 from cme import csscolor, key
 from cme.camera import Camera
@@ -15,14 +20,24 @@ from cme.text import center_x, center_y
 from cme.texture import (PymunkHitBoxAlgorithm, Texture, load_texture,
                          load_texture_series)
 
-from .constants import MAP_SIZE
-from .enums import Font
+from .constants import MAP_SIZE, TILE_SIZE
+from .enums import Entrance, Font
 from .gamesave import UnfinishedRun
-from .model import Player
-from .paths import MAPS_PATH, MUSIC_PATH, TEXTURES_PATH
+from .model import MOB_NAME_TO_MOB, Hostile, Level, Player
+from .paths import LEVELS_PATH, MAPS_PATH, MUSIC_PATH, TEXTURES_PATH
 
 if TYPE_CHECKING:
     from .window import Window
+
+
+def draw_fps(window: "Window"):
+    # Suppress performance warning
+    with contextlib.redirect_stderr(cme.utils.NullStream):
+        cme.text.draw_text(
+            text=f"{round(cme.get_fps(), 2)} FPS",
+            x=window.width - 100,
+            y=window.height - 40,
+        )
 
 
 class MenuView(cme.view.FadingView):
@@ -682,6 +697,9 @@ class MenuView(cme.view.FadingView):
 
         self.draw_fading()
 
+        if __debug__:
+            draw_fps(self.window)
+
     def on_update(self, delta_time: float) -> None:
         super().on_update(delta_time)
         self.pointer_right.update_animation()
@@ -714,12 +732,93 @@ class GameView(cme.view.FadingView):
             self.player.ammo = unfinished_run.ammo
             self.player.stored_item = unfinished_run.stored_item
             self.player.res_coins = unfinished_run.res_coins
+            self.hard = unfinished_run.hard
         else:
             self.current_map = "d1r1"
+            self.hard = False
         self.setup_map()
+        self.delay_before_start = 2.0 if self.current_map == "d1r1" else 4.0  # 8.0  # noqa
+        self.delay_start_time = time.time()
+        self.started = False
 
         self.apply_language()
         self.resize()
+
+    def on_update(self, delta_time: float) -> None:
+        if self.paused:
+            return
+
+        super().on_update(delta_time)
+
+        if (
+            not self.started
+            and time.time() - self.delay_start_time >= self.delay_before_start
+        ):
+            self.started = True
+            self.new_wave()
+        elif (
+            self.started
+            and time.time() - self.last_wave_start >= self.last_wave_duration
+        ):
+            try:
+                self.new_wave()
+            except RuntimeError:
+                pass  # TODO end room
+
+        self.scene.on_update(delta_time)
+        self.scene.update_animation(delta_time)
+        bullets = self.player.shoot()
+        if bullets:
+            self.scene["friendly_projectiles"].extend(bullets)
+
+        # Projectile collisions and out-of-bounds
+        for projectile in (
+            *self.scene["friendly_projectiles"],
+            *self.scene["hostile_projectiles"],
+        ):
+            if (
+                projectile.top < 0
+                or projectile.bottom > MAP_SIZE
+                or projectile.left < 0
+                or projectile.right > MAP_SIZE
+                or check_for_collision_with_list(
+                    projectile, self.scene["walls"]
+                )
+            ):
+                projectile.remove_from_sprite_lists()
+
+    def new_wave(self):
+        try:
+            self.last_wave_duration = self.level.waves[
+                self.level.current_wave
+            ][1]
+        except IndexError:
+            raise RuntimeError("This was the last wave")
+        mobs = self.level.next_wave()
+        for mob in mobs:
+            self.spawn_mob(MOB_NAME_TO_MOB[mob])
+        self.last_wave_start = time.time()
+
+    def spawn_mob(self, mob_type: type[Hostile]):
+        mob = mob_type(
+            player=self.player,
+            walls=self.scene["walls"],
+        )
+        self.scene.add_sprite("hostiles", mob)
+        entrance = Entrance(random.randint(0, 3))
+        match entrance:
+            case Entrance.TOP:
+                mob.center_x = MAP_SIZE / 2
+                mob.center_y = MAP_SIZE + TILE_SIZE
+            case Entrance.BOTTOM:
+                mob.center_x = MAP_SIZE / 2
+                mob.center_y = -TILE_SIZE
+            case Entrance.LEFT:
+                mob.center_x = -TILE_SIZE
+                mob.center_y = MAP_SIZE / 2
+            case Entrance.RIGHT:
+                mob.center_x = MAP_SIZE + TILE_SIZE
+                mob.center_y = MAP_SIZE / 2
 
     def apply_language(self):
         self.pause_continue.text = self.window.lang["pause_continue"]
@@ -838,7 +937,7 @@ class GameView(cme.view.FadingView):
     def setup_map(self):
         self.load_current_map()
         self.player.position = MAP_SIZE / 2, MAP_SIZE / 2
-        self.scene.add_sprite_list("enemies", use_spatial_hash=True)
+        self.scene.add_sprite_list("hostiles", use_spatial_hash=True)
         self.scene.add_sprite_list(
             "friendly_projectiles", use_spatial_hash=True)
         self.scene.add_sprite_list(
@@ -846,6 +945,10 @@ class GameView(cme.view.FadingView):
         self.scene.add_sprite_list("player", use_spatial_hash=True)
         self.scene["player"].append(self.player)
         self.player.walls = self.scene["walls"]
+        self.level = Level(
+            LEVELS_PATH / ("hard" if self.hard else "normal")
+            / f"{self.current_map}.toml"
+        )
 
     def on_resize(self, width: int, height: int) -> None:
         super().on_resize(width, height)
@@ -876,33 +979,6 @@ class GameView(cme.view.FadingView):
         self.pause_pointer_left.center_x = self.pause_selected_item.right + 40
         self.pause_pointer_left.center_y = self.pause_selected_item.y + self.pause_selected_item.content_height / 2  # noqa
 
-    def on_update(self, delta_time: float) -> None:
-        if self.paused:
-            return
-
-        super().on_update(delta_time)
-        self.scene.on_update(delta_time)
-        self.scene.update_animation(delta_time)
-        bullets = self.player.shoot()
-        if bullets:
-            self.scene["friendly_projectiles"].extend(bullets)
-
-        # Projectile collisions and out-of-bounds
-        for projectile in (
-            *self.scene["friendly_projectiles"],
-            *self.scene["hostile_projectiles"],
-        ):
-            if (
-                projectile.top < 0
-                or projectile.bottom > MAP_SIZE
-                or projectile.left < 0
-                or projectile.right > MAP_SIZE
-                or check_for_collision_with_list(
-                    projectile, self.scene["walls"]
-                )
-            ):
-                projectile.remove_from_sprite_lists()
-
     def on_draw(self) -> None:
         self.gui_cam.use()
         # Overdraw with black as the Camera only draws to its viewport.
@@ -927,6 +1003,9 @@ class GameView(cme.view.FadingView):
             self.pause_overlay.draw()
             self.pause_text_batch.draw()
             self.pause_pixel_sprites.draw(pixelated=True)
+
+        if __debug__:
+            draw_fps(self.window)
 
     def back_to_main_menu(self):
         self.paused = False

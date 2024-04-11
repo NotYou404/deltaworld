@@ -1,1 +1,2 @@
 MAP_SIZE = 608
+TILE_SIZE = 38

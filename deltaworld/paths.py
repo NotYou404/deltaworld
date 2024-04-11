@@ -16,3 +16,5 @@ MUSIC_PATH = cme.resource_.AssetsPath(ASSETS_PATH / "music")
 TEXTURES_PATH = cme.resource_.AssetsPath(ASSETS_PATH / "textures")
 
 MAPS_PATH = cme.resource_.AssetsPath(ASSETS_PATH / "maps")
+
+LEVELS_PATH = cme.resource_.AssetsPath(Path(__file__).parent / "levels")

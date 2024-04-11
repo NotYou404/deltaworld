@@ -17,6 +17,7 @@ class UnfinishedRun:
         ammo: Upgrade,
         stored_item: Optional[Item],
         res_coins: int,
+        hard: bool,
     ) -> None:
         """
         Save everything required to resume a game at a specific state.
@@ -34,6 +35,8 @@ class UnfinishedRun:
         :type stored_item: Optional[Item]
         :param res_coins: The amount of resurrection coins the player owns
         :type res_coins: int
+        :param hard: Wether the run is in hard mode
+        :type hard: bool
         """
         self.map = map
         self.armor = armor
@@ -41,6 +44,7 @@ class UnfinishedRun:
         self.ammo = ammo
         self.stored_item = stored_item
         self.res_coins = res_coins
+        self.hard = hard
 
 
 @dataclass

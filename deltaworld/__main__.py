@@ -27,6 +27,9 @@ def launch():
     from .views import MenuView
     from .window import Window
 
+    if __debug__:
+        cme.enable_timings()
+
     win = Window(
         title="Deltaworld",
         fullscreen=True,
