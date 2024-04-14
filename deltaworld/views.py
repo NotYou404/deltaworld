@@ -722,8 +722,6 @@ class GameView(cme.view.FadingView):
         self.create_pause_menu()
         self.hide_pause_menu()
 
-        self.setup_player()
-
         if self.window.gamesave.unfinished_run:
             unfinished_run = self.window.gamesave.unfinished_run
             self.current_map = unfinished_run.map
@@ -736,6 +734,8 @@ class GameView(cme.view.FadingView):
         else:
             self.current_map = "d1r1"
             self.hard = False
+
+        self.setup_player()
         self.setup_map()
         self.delay_before_start = 2.0 if self.current_map == "d1r1" else 4.0  # 8.0  # noqa
         self.delay_start_time = time.time()
@@ -781,11 +781,71 @@ class GameView(cme.view.FadingView):
                 or projectile.bottom > MAP_SIZE
                 or projectile.left < 0
                 or projectile.right > MAP_SIZE
-                or check_for_collision_with_list(
-                    projectile, self.scene["walls"]
-                )
             ):
                 projectile.remove_from_sprite_lists()
+            elif walls := check_for_collision_with_list(
+                projectile, self.scene["walls"]
+            ):
+                for wall in walls:
+                    if not projectile.center_y < wall.bottom:
+                        projectile.remove_from_sprite_lists()
+
+            elif (
+                projectile in self.scene["friendly_projectiles"]
+                and (hostiles := check_for_collision_with_list(
+                    projectile, self.scene["hostiles"]
+                ))
+            ):
+                hostile = hostiles[0]  # Two hostiles stacked, only hit one
+                if hostile in projectile.hostiles_hit:
+                    pass  # Hit this one already
+                projectile.remaining_penetration -= 1
+                projectile.hostiles_hit.append(hostile)
+                hostile.hp -= projectile.damage
+                if projectile.remaining_penetration < 1:
+                    projectile.remove_from_sprite_lists()
+                if hostile.hp < 1:
+                    hostile.remove_from_sprite_lists()
+                    # TODO: Coin and item drop logic
+
+        if (
+            check_for_collision_with_list(self.player, self.scene["hostiles"])
+            or check_for_collision_with_list(self.player, self.scene[
+                "hostile_projectiles"
+            ])
+        ):
+            self.kill_player()
+
+    def kill_player(self):
+        for sprite in (
+            *self.scene["hostiles"],
+            *self.scene["friendly_projectiles"],
+            *self.scene["hostile_projectiles"],
+        ):
+            sprite.remove_from_sprite_lists()
+
+        if self.player.res_coins:
+            self.player.res_coins -= 1
+            self.player.visible = False
+            self.level.current_wave -= 2
+            if self.level.current_wave < 0:
+                self.level.current_wave = 0
+            self.started = False
+            self.delay_before_start = 4.0
+            self.delay_start_time = time.time()
+            cme.concurrency.schedule_once(self._show_player, 1.0)
+        else:
+            self.back_to_main_menu()  # TODO Show sad illuminati view
+
+    def _show_player(self, dt: float):
+        self.player.visible = True
+        self.player.center = (MAP_SIZE / 2, MAP_SIZE / 2)
+        self.player.set_idling()
+        self.player.can_move = False
+        cme.concurrency.schedule_once(self._allow_player_movement, 1.0)
+
+    def _allow_player_movement(self, dt: float):
+        self.player.can_move = True
 
     def new_wave(self):
         try:
@@ -803,6 +863,7 @@ class GameView(cme.view.FadingView):
         mob = mob_type(
             player=self.player,
             walls=self.scene["walls"],
+            hostiles=self.scene["hostiles"]
         )
         self.scene.add_sprite("hostiles", mob)
         entrance = Entrance(random.randint(0, 3))
@@ -926,11 +987,12 @@ class GameView(cme.view.FadingView):
         )
         self.player.animation_speed = 1.0
         self.player.set_idling()
+        self.player.res_coins = 3 if not self.hard else 0
 
     def load_current_map(self):
         self.tilemap = cme.tilemap.TileMap(
             MAPS_PATH / (self.current_map + ".tmj"),
-            use_spatial_hash=True
+            use_spatial_hash=True,
         )
         self.scene = Scene.from_tilemap(self.tilemap)
 
@@ -957,10 +1019,10 @@ class GameView(cme.view.FadingView):
             width / MAP_SIZE if width < height else height / MAP_SIZE
         )
         self.camera.viewport = (
-            (self.window.width - MAP_SIZE * self.map_scale) / 2,
-            0,
-            MAP_SIZE * self.map_scale,
-            MAP_SIZE * self.map_scale,
+            (self.window.width - MAP_SIZE * self.map_scale) / 2 + 80,
+            80,
+            MAP_SIZE * self.map_scale - 160,
+            MAP_SIZE * self.map_scale - 160,
         )
         self.camera.projection = (
             0, MAP_SIZE, 0, MAP_SIZE

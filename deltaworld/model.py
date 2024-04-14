@@ -1,5 +1,6 @@
 import math
 import multiprocessing
+import multiprocessing.pool
 import random
 import time
 import tomllib
@@ -10,7 +11,6 @@ from typing import Any, Iterable, Optional
 
 import cme.utils
 from cme import types
-from cme.concurrency import start_worker_process
 from cme.pathfinding import AStarBarrierList, astar_calculate_path
 from cme.sprite import (AnimatedSprite, AnimatedWalkingSprite, SimpleUpdater,
                         Sprite, SpriteList, TopDownUpdater)
@@ -18,6 +18,104 @@ from cme.texture import load_texture
 
 from .constants import MAP_SIZE, TILE_SIZE
 from .paths import TEXTURES_PATH
+
+PATHFINDING_QUEUE: Optional[multiprocessing.Queue] = None
+PATHFINDING_POOL: Optional[multiprocessing.pool.Pool] = None
+
+
+# def enqueue_pathfinder(
+#     sprite: Sprite,
+#     target_point: types.Point,
+#     walls: SpriteList,
+# ) -> multiprocessing.Queue:
+#     global PATHFINDING_QUEUE
+#     if not PATHFINDING_QUEUE:
+#         PATHFINDING_QUEUE = setup_worker_process(target=calc_path, daemon=True)  # noqa
+#     return_queue = multiprocessing.Queue()
+#     PATHFINDING_QUEUE.put((return_queue, sprite, target_point, walls))
+#     return return_queue
+
+
+def enqueue_pathfinder(
+    sprite: Sprite,
+    target_point: types.Point,
+    walls: SpriteList,
+) -> multiprocessing.Queue:
+    global PATHFINDING_POOL
+    if not PATHFINDING_POOL:
+        PATHFINDING_POOL = multiprocessing.Pool(3)
+    sprite = (
+        sprite.texture.file_path,
+        sprite.scale,
+        sprite.center_x,
+        sprite.center_y,
+        sprite.angle,
+    )
+    walls = [
+        (
+            sprite.texture.file_path,
+            sprite.scale,
+            sprite.center_x,
+            sprite.center_y,
+            sprite.angle,
+        )
+        for sprite in walls
+    ]
+    return PATHFINDING_POOL.apply_async(
+        _calc_path_pkl, (sprite, target_point, walls)
+    )
+
+
+def _calc_path_pkl(
+    sprite: tuple, target_point: types.Point, walls: list[tuple]
+) -> list[types.Point]:
+    """
+    We serialize Sprite and SpriteList with the minimal things required to
+    enable pickling. For some reason I couldn't figure out, pickling (even
+    with dill) a Sprite and SpriteList would raise an error, unable to pickle
+    weakref (ctypes pointer object in the case of dill).
+
+    sprite: tuple of texture path, scale, center_x, center_y, angle
+    target_point: regular types.Point
+    walls: list of tuples whose contents are same as with `sprite`
+
+    Returns: Path returned by `calc_path()`
+    """
+    sprite = Sprite(
+        path_or_texture=sprite[0],
+        scale=sprite[1],
+        center_x=sprite[2],
+        center_y=sprite[3],
+        angle=sprite[4],
+    )
+    walls_ = SpriteList()
+    for wall in walls:
+        walls_.append(Sprite(
+            wall[0], wall[1], wall[2], wall[3], wall[4]
+        ))
+    return calc_path(sprite, target_point, walls_)
+
+
+def calc_path(
+    sprite: Sprite,
+    target_point: types.Point,
+    walls: SpriteList,
+) -> list[types.Point]:
+    barrier_list = AStarBarrierList(
+        moving_sprite=sprite,
+        blocking_sprites=walls,
+        grid_size=TILE_SIZE,
+        left=0,
+        right=MAP_SIZE,
+        bottom=0,
+        top=MAP_SIZE,
+    )
+    path = astar_calculate_path(
+        start_point=(sprite.center_x, sprite.center_y),
+        end_point=get_tile_center_of_point(target_point),
+        astar_barrier_list=barrier_list,
+    )
+    return path
 
 
 def get_tile_center_of_point(point: types.Point):
@@ -56,28 +154,6 @@ def find_with_class(iter: Iterable, cls: type | tuple[type]) -> Optional[Any]:
     for obj in iter:
         if isinstance(obj, cls):
             return obj
-
-
-def calc_path(
-    sprite: Sprite,
-    target_point: types.Point,
-    walls: SpriteList,
-) -> list[types.Point]:
-    barrier_list = AStarBarrierList(
-        moving_sprite=sprite,
-        blocking_sprites=walls,
-        grid_size=TILE_SIZE,
-        left=0,
-        right=MAP_SIZE,
-        bottom=0,
-        top=MAP_SIZE,
-    )
-    sprite.testing = barrier_list
-    return astar_calculate_path(
-        start_point=(sprite.center_x, sprite.center_y),
-        end_point=get_tile_center_of_point(target_point),
-        astar_barrier_list=barrier_list,
-    )
 
 
 class Level:
@@ -257,16 +333,28 @@ class Bullet(Sprite):
         )
         self.damage = damage
         self.remaining_penetration = penetration
+        self.hostiles_hit = SpriteList()  # Avoid hitting an enemy twice
 
 
 class Hostile(AnimatedSprite):
     HP: int
     BASE_SPEED: float
 
-    def __init__(self, player: Sprite, walls: SpriteList, *args, **kwargs):
+    def __init__(
+        self,
+        player: Sprite,
+        walls: SpriteList,
+        hostiles: SpriteList,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.player = player
         self.walls = walls
+        self.other_hostiles = SpriteList()
+        for hostile in hostiles:
+            if hostile != self:
+                self.other_hostiles.append(hostile)
         self.hp = self.HP
         self.can_attack = True
         self.last_attack = 0
@@ -275,7 +363,7 @@ class Hostile(AnimatedSprite):
         self.next_point: Optional[types.Point] = None
         self.path_queue: Optional[deque] = None
         self.path_pending = False
-        self.pending_path_queue: Optional[multiprocessing.Queue] = None
+        self.pending_path_queue: Optional [multiprocessing.pool.AsyncResult] = None  # : Optional[multiprocessing.Queue] = None  # noqa
         self.path_calc_process: Optional[Process] = None
 
     @property
@@ -288,7 +376,7 @@ class Hostile(AnimatedSprite):
             SimpleUpdater(),
         )
 
-        if self.path_pending and not self.pending_path_queue.empty():
+        if self.path_pending and self.pending_path_queue.ready():
             self.path_pending = False
             self._process_path(self.pending_path_queue.get())
 
@@ -333,11 +421,7 @@ class Hostile(AnimatedSprite):
         if self.path_pending:
             return
         self.path_pending = True
-        self.pending_path_queue = start_worker_process(
-            target=calc_path,
-            args=(self, point, self.walls),
-            daemon=True,
-        )
+        self.pending_path_queue = enqueue_pathfinder(self, point, self.walls)
 
     def _process_path(self, path):
         if path is not None:
@@ -389,6 +473,7 @@ class Player(AnimatedWalkingSprite):
         self.last_shot: float = time.time()
         self.facing_angle = 0
         self.is_on_soulsand = False
+        self.can_move = True
 
         self.left_pressed = False
         self.right_pressed = False
@@ -468,9 +553,12 @@ class Player(AnimatedWalkingSprite):
                     speed(self.final_movement_speed), 315
                 )
 
-        super().on_update(
-            delta_time, TopDownUpdater(self.walls, (0, 0, MAP_SIZE, MAP_SIZE))
-        )
+        if self.can_move:
+            super().on_update(
+                delta_time, TopDownUpdater(
+                    self.walls, (0, 0, MAP_SIZE, MAP_SIZE)
+                )
+            )
 
         # Set facing by walk direction
         self.facing_angle = self.calc_facing_angle()
@@ -506,6 +594,9 @@ class Player(AnimatedWalkingSprite):
         if self.last_shot > time.time() - 1 / self.final_fire_rate:
             return  # Can't shoot that fast
 
+        if not self.can_move:
+            return
+
         # Calculate shooting angle
         dir_horizontal = 0
         dir_vertical = 0
@@ -536,7 +627,7 @@ class Player(AnimatedWalkingSprite):
             else:
                 shoot_angle = 315
 
-        bullets = []
+        bullets: list[Sprite] = []
         bullet_speed = self.final_bullet_speed
         bullet_damage = self.final_damage
         bullet_penetration = self.final_penetration
