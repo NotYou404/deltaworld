@@ -1,5 +1,4 @@
 import contextlib
-import os
 import random
 import time
 from typing import TYPE_CHECKING
@@ -11,7 +10,7 @@ import cme.sound
 import cme.text
 import cme.utils
 import cme.view
-from cme import csscolor, key
+from cme import csscolor, key, types
 from cme.camera import Camera
 from cme.shapes import Batch, Rectangle, draw_xywh_rectangle_filled
 from cme.sprite import (AnimatedSprite, Scene, Sprite, SpriteList,
@@ -23,7 +22,8 @@ from cme.texture import (PymunkHitBoxAlgorithm, Texture, load_texture,
 from .constants import MAP_SIZE, TILE_SIZE
 from .enums import Entrance, Font
 from .gamesave import UnfinishedRun
-from .model import MOB_NAME_TO_MOB, Hostile, Level, Player
+from .model import (ITEMS, MOB_NAME_TO_MOB, Hostile, Item, Level, Player,
+                    ResurrectionCoin)
 from .paths import LEVELS_PATH, MAPS_PATH, MUSIC_PATH, TEXTURES_PATH
 
 if TYPE_CHECKING:
@@ -38,6 +38,32 @@ def draw_fps(window: "Window"):
             x=window.width - 100,
             y=window.height - 40,
         )
+
+
+class ItemSprite(AnimatedSprite):
+    EXPIRY_TIME = 16
+    BLINK_TIME = 12
+
+    def __init__(self, item_type: type[Item], *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.type = item_type
+        self.time_placed = time.time()
+        self.add_texture(self.texture, "idling")
+        self.state = "idling"
+        self.add_textures(
+            {"blinking": [
+                self.texture,
+                Texture.create_empty("void", self.texture.size)
+            ]}
+        )
+        self.animation_speed = 0.5
+
+    def on_update(self, delta_time: float) -> None:
+        super().on_update(delta_time)
+        if time.time() - self.BLINK_TIME > self.time_placed:
+            self.state = "blinking"
+        if time.time() - self.EXPIRY_TIME > self.time_placed:
+            self.remove_from_sprite_lists()
 
 
 class MenuView(cme.view.FadingView):
@@ -806,8 +832,18 @@ class GameView(cme.view.FadingView):
                     projectile.remove_from_sprite_lists()
                 if hostile.hp < 1:
                     hostile.remove_from_sprite_lists()
-                    # TODO: Coin and item drop logic
+                    if random.random() < 0.05:
+                        item = random.choice(ITEMS)
+                        if item.RARE:
+                            if random.random() < 0.6:
+                                item = random.choice(
+                                    [i for i in ITEMS if not i.RARE]
+                                )
+                        if not self.hard and random.random() < 0.05:
+                            item = ResurrectionCoin
+                        self.place_item(hostile.center, item)
 
+        # Are we dead?
         if (
             check_for_collision_with_list(self.player, self.scene["hostiles"])
             or check_for_collision_with_list(self.player, self.scene[
@@ -815,6 +851,30 @@ class GameView(cme.view.FadingView):
             ])
         ):
             self.kill_player()
+
+        # Did we pick up any items?
+        if (
+            items := check_for_collision_with_list(
+                self.player, self.scene["items"]
+            )
+        ):
+            for item in items:
+                item.remove_from_sprite_lists()
+                if item.type == ResurrectionCoin:
+                    self.player.res_coins += 1
+                else:
+                    self.player.pickup_item(item.type())
+
+        # Are there items on the ground about to expire?
+        for item in self.scene["items"]:
+            item.on_update(delta_time)
+
+    def place_item(
+        self, point: types.Point, item: type[Item | ResurrectionCoin]
+    ):
+        self.scene.add_sprite("items", ItemSprite(
+            item, item.TEXTURE, center_x=point[0], center_y=point[1]
+        ))
 
     def kill_player(self):
         for sprite in (
@@ -869,17 +929,17 @@ class GameView(cme.view.FadingView):
         entrance = Entrance(random.randint(0, 3))
         match entrance:
             case Entrance.TOP:
-                mob.center_x = MAP_SIZE / 2
+                mob.center_x = random.choice([247, 285, 323, 361])
                 mob.center_y = MAP_SIZE + TILE_SIZE
             case Entrance.BOTTOM:
-                mob.center_x = MAP_SIZE / 2
+                mob.center_x = random.choice([247, 285, 323, 361])
                 mob.center_y = -TILE_SIZE
             case Entrance.LEFT:
                 mob.center_x = -TILE_SIZE
-                mob.center_y = MAP_SIZE / 2
+                mob.center_y = random.choice([247, 285, 323, 361])
             case Entrance.RIGHT:
                 mob.center_x = MAP_SIZE + TILE_SIZE
-                mob.center_y = MAP_SIZE / 2
+                mob.center_y = random.choice([247, 285, 323, 361])
 
     def apply_language(self):
         self.pause_continue.text = self.window.lang["pause_continue"]
@@ -1004,6 +1064,7 @@ class GameView(cme.view.FadingView):
             "friendly_projectiles", use_spatial_hash=True)
         self.scene.add_sprite_list(
             "hostile_projectiles", use_spatial_hash=True)
+        self.scene.add_sprite_list("items", use_spatial_hash=True)
         self.scene.add_sprite_list("player", use_spatial_hash=True)
         self.scene["player"].append(self.player)
         self.player.walls = self.scene["walls"]

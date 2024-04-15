@@ -260,9 +260,14 @@ class Upgrade:
         return self.level
 
 
+class ResurrectionCoin:
+    TEXTURE = TEXTURES_PATH.get("res_coin")
+
+
 class Item:
     RARE: bool
     DURATION: int | float
+    TEXTURE: Path
 
     def __init__(self):
         self.time_used: Optional[float] = None
@@ -275,6 +280,7 @@ class SemiAutomatic(Item):
     RARE = False
     DURATION = 12
     FIRE_RATE = 10
+    TEXTURE = TEXTURES_PATH.get("semi_automatic")
 
 
 class Pressurer(Item):
@@ -282,6 +288,7 @@ class Pressurer(Item):
     DURATION = 12
     BULLET_SPEED_MOD = 1.5
     DAMAGE_MOD = 2.0
+    TEXTURE = TEXTURES_PATH.get("pressurer")
 
 
 class Scope(Item):
@@ -289,33 +296,39 @@ class Scope(Item):
     DURATION = 18
     EXTRA_PENETRATION = 1
     FIRE_RATE_MOD = 0.8
+    TEXTURE = TEXTURES_PATH.get("scope")
 
 
 class BlueCow(Item):
     RARE = False
     DURATION = 15
     SPEED_MOD = 1.35
+    TEXTURE = TEXTURES_PATH.get("blue_cow")
 
 
 class Spray(Item):
     RARE = False
     DURATION = 13
+    TEXTURE = TEXTURES_PATH.get("spray")
 
 
 class ThreeSixty(Item):
     RARE = False
     DURATION = 12
+    TEXTURE = TEXTURES_PATH.get("three_sixty")
 
 
 class HolyGuard(Item):
     RARE = True
     DURATION = 8
     IMMUNITY_DURATION = 3
+    TEXTURE = TEXTURES_PATH.get("holy_guard")
 
 
 class SmokeBomb(Item):
     RARE = True
     DURATION = 7
+    TEXTURE = TEXTURES_PATH.get("smoke_bomb")
 
 
 class LaserBeam(Item):
@@ -324,6 +337,7 @@ class LaserBeam(Item):
     SECONDS_PER_CYCLE = 1.5
     RANGE = 3
     DAMAGE = 8
+    TEXTURE = TEXTURES_PATH.get("laser_beam")
 
 
 class Bullet(Sprite):
@@ -581,21 +595,31 @@ class Player(AnimatedWalkingSprite):
         # Remove timed out items
         cur_time = time.time()
         for item in self.active_items.copy():
-            if item.time_used > cur_time - item.DURATION:
+            if item.time_used < cur_time - item.DURATION:
                 self.active_items.remove(item)
 
-    def use_item(self):
+    def use_item(self) -> None:
         if not self.stored_item:
             return
 
-        # Only one item of a type can be active at once
-        for item in self.active_items.copy():
-            if isinstance(item, self.stored_item.__class__):
-                self.active_items.remove(item)
-
-        self.active_items.append(self.stored_item)
-        self.stored_item.use()
+        self._use_item(self.stored_item)
         self.stored_item = None
+
+    def pickup_item(self, item: Item) -> None:
+        if not self.stored_item:
+            self.stored_item = item
+        else:
+            # Auto use
+            self._use_item(item)
+
+    def _use_item(self, item: Item) -> None:
+        # Only one item of a type can be active at once
+        for active_item in self.active_items.copy():
+            if isinstance(active_item, item.__class__):
+                self.active_items.remove(active_item)
+
+        self.active_items.append(item)
+        item.use()
 
     def shoot(self) -> Optional[list[Sprite]]:
         """
@@ -790,3 +814,8 @@ MOB_NAME_TO_MOB = {
     # "ghost_pirate_jake": GhostPirateJake,
     # "delta": Delta,
 }
+
+ITEMS: list[Item] = [
+    SemiAutomatic, Pressurer, Scope, BlueCow, Spray,
+    ThreeSixty, HolyGuard, SmokeBomb, LaserBeam,
+]
