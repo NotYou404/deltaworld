@@ -830,6 +830,7 @@ class GameView(cme.view.FadingView):
             self.level.current_wave -= 2
             if self.level.current_wave < 0:
                 self.level.current_wave = 0
+            self.player.can_move = False
             self.started = False
             self.delay_before_start = 4.0
             self.delay_start_time = time.time()
@@ -841,7 +842,6 @@ class GameView(cme.view.FadingView):
         self.player.visible = True
         self.player.center = (MAP_SIZE / 2, MAP_SIZE / 2)
         self.player.set_idling()
-        self.player.can_move = False
         cme.concurrency.schedule_once(self._allow_player_movement, 1.0)
 
     def _allow_player_movement(self, dt: float):

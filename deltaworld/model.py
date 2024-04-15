@@ -101,21 +101,36 @@ def calc_path(
     target_point: types.Point,
     walls: SpriteList,
 ) -> list[types.Point]:
+    # As the algorithm doesn't allow moving on tiles instead of between tiles,
+    # We need to manually displace walls and modify the path after calculating.
+    for wall in walls:
+        wall.center_x -= TILE_SIZE / 2
+        wall.center_y -= TILE_SIZE / 2
+
     barrier_list = AStarBarrierList(
         moving_sprite=sprite,
         blocking_sprites=walls,
         grid_size=TILE_SIZE,
-        left=0,
-        right=MAP_SIZE,
-        bottom=0,
-        top=MAP_SIZE,
+        left=TILE_SIZE / 2,
+        right=MAP_SIZE - TILE_SIZE / 2,
+        bottom=TILE_SIZE / 2,
+        top=MAP_SIZE - TILE_SIZE / 2,
     )
     path = astar_calculate_path(
         start_point=(sprite.center_x, sprite.center_y),
         end_point=get_tile_center_of_point(target_point),
         astar_barrier_list=barrier_list,
     )
-    return path
+
+    for wall in walls:
+        wall.center_x += TILE_SIZE / 2
+        wall.center_y += TILE_SIZE / 2
+
+    if not path:
+        return path
+
+    # Shift path by 1/2 tiles as hostiles should walk on tiles, not between
+    return [(p[0] + TILE_SIZE / 2, p[1] + TILE_SIZE / 2) for p in path]
 
 
 def get_tile_center_of_point(point: types.Point):
