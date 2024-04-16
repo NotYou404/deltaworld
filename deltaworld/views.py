@@ -1103,19 +1103,9 @@ class GameView(cme.view.FadingView):
         self.pause_pointer_left.center_y = self.pause_selected_item.y + self.pause_selected_item.content_height / 2  # noqa
 
     def on_draw(self) -> None:
-        self.gui_cam.use()
-        # Overdraw with black as the Camera only draws to its viewport.
-        # Prevents issues with overlays from other apps.
-        draw_xywh_rectangle_filled(
-            0,
-            0,
-            self.window.width,
-            self.window.height,
-            csscolor.BLACK,
-        )
+        super().on_draw()
 
         self.camera.use()
-        super().on_draw()
 
         self.scene.draw(pixelated=True)
 
