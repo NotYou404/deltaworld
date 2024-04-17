@@ -21,20 +21,22 @@ class Window(cme.window.Window):
         self,
         width: int = 800,
         height: int = 600,
-        title: Optional[str] = 'Deltaworld',
+        title: Optional[str] = "Window",
         fullscreen: bool = False,
         resizable: bool = True,
         update_rate: float = 1 / 60,
         antialiasing: bool = True,
         gl_version: tuple[int, int] = (3, 3),
-        screen: pyglet.canvas.Screen = None,
+        screen: Optional[pyglet.display.Screen] = None,
         style: Optional[str] = pyglet.window.Window.WINDOW_STYLE_DEFAULT,
         visible: bool = True,
         vsync: bool = False,
         gc_mode: str = "context_gc",
-        center_window: bool = True,
+        center_window: bool = False,
         samples: int = 4,
         enable_polling: bool = True,
+        gl_api: str = "gl",
+        draw_rate: float = 1 / 60,
     ) -> None:
         super().__init__(
             width=width,
@@ -53,6 +55,8 @@ class Window(cme.window.Window):
             center_window=center_window,
             samples=samples,
             enable_polling=enable_polling,
+            gl_api=gl_api,
+            draw_rate=draw_rate,
         )
 
         self.set_min_size(1330, 900)

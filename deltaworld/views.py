@@ -11,7 +11,7 @@ import cme.text
 import cme.utils
 import cme.view
 from cme import csscolor, key, types
-from cme.camera import Camera
+from cme.camera import Camera2D
 from cme.shapes import Batch, Rectangle, draw_xywh_rectangle_filled
 from cme.sprite import (AnimatedSprite, Scene, Sprite, SpriteList,
                         check_for_collision_with_list)
@@ -438,9 +438,15 @@ class MenuView(cme.view.FadingView):
                     self.on_resize(self.window.width, self.window.height)
                 elif self.selected_setting == self.settings_volume_switch:
                     if symbol == key.LEFT:
-                        self.window.settings.volume -= 0.02
+                        if modifiers & key.MOD_CTRL:
+                            self.window.settings.volume -= 0.1
+                        else:
+                            self.window.settings.volume -= 0.02
                     else:
-                        self.window.settings.volume += 0.02
+                        if modifiers & key.MOD_CTRL:
+                            self.window.settings.volume += 0.1
+                        else:
+                            self.window.settings.volume += 0.02
                     self.window.settings.apply(self.window)
                     self.settings_volume_switch.text = str(int(self.window.settings.volume * 100))  # noqa
                     self.on_resize(self.window.width, self.window.height)
@@ -742,8 +748,8 @@ class GameView(cme.view.FadingView):
         self._paused = False
         self.pause_pixel_sprites = SpriteList()
 
-        self.camera = Camera()
-        self.gui_cam = Camera()
+        self.camera = Camera2D()
+        self.gui_cam = Camera2D()
 
         self.create_pause_menu()
         self.hide_pause_menu()
@@ -751,17 +757,20 @@ class GameView(cme.view.FadingView):
         if self.window.gamesave.unfinished_run:
             unfinished_run = self.window.gamesave.unfinished_run
             self.current_map = unfinished_run.map
-            self.player.armor = unfinished_run.armor
-            self.player.gun = unfinished_run.gun
-            self.player.ammo = unfinished_run.ammo
-            self.player.stored_item = unfinished_run.stored_item
-            self.player.res_coins = unfinished_run.res_coins
             self.hard = unfinished_run.hard
         else:
             self.current_map = "d1r1"
             self.hard = False
 
-        self.setup_player()
+        self.setup_player()  # This requires the hard attr to be set
+
+        if self.window.gamesave.unfinished_run:
+            self.player.armor = unfinished_run.armor
+            self.player.gun = unfinished_run.gun
+            self.player.ammo = unfinished_run.ammo
+            self.player.stored_item = unfinished_run.stored_item
+            self.player.res_coins = unfinished_run.res_coins
+
         self.setup_map()
         self.delay_before_start = 2.0 if self.current_map == "d1r1" else 4.0  # 8.0  # noqa
         self.delay_start_time = time.time()
@@ -1086,9 +1095,11 @@ class GameView(cme.view.FadingView):
             MAP_SIZE * self.map_scale - 160,
         )
         self.camera.projection = (
-            0, MAP_SIZE, 0, MAP_SIZE
+            -width / 2,
+            -width / 2 + MAP_SIZE,
+            -height / 2,
+            -height / 2 + MAP_SIZE,
         )
-        self.camera.update()
 
         center_x(self.pause_continue, width)
         self.pause_continue.y = height / 2 + 30
@@ -1158,6 +1169,7 @@ class GameView(cme.view.FadingView):
                         self.player.ammo,
                         self.player.stored_item,
                         self.player.res_coins,
+                        self.hard,
                     )
                     self.back_to_main_menu()
                 else:

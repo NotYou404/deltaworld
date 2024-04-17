@@ -23,19 +23,6 @@ PATHFINDING_QUEUE: Optional[multiprocessing.Queue] = None
 PATHFINDING_POOL: Optional[multiprocessing.pool.Pool] = None
 
 
-# def enqueue_pathfinder(
-#     sprite: Sprite,
-#     target_point: types.Point,
-#     walls: SpriteList,
-# ) -> multiprocessing.Queue:
-#     global PATHFINDING_QUEUE
-#     if not PATHFINDING_QUEUE:
-#         PATHFINDING_QUEUE = setup_worker_process(target=calc_path, daemon=True)  # noqa
-#     return_queue = multiprocessing.Queue()
-#     PATHFINDING_QUEUE.put((return_queue, sprite, target_point, walls))
-#     return return_queue
-
-
 def enqueue_pathfinder(
     sprite: Sprite,
     target_point: types.Point,
@@ -112,9 +99,9 @@ def calc_path(
         blocking_sprites=walls,
         grid_size=TILE_SIZE,
         left=TILE_SIZE / 2,
-        right=MAP_SIZE - TILE_SIZE / 2,
+        right=MAP_SIZE + TILE_SIZE / 2,
         bottom=TILE_SIZE / 2,
-        top=MAP_SIZE - TILE_SIZE / 2,
+        top=MAP_SIZE + TILE_SIZE / 2,
     )
     path = astar_calculate_path(
         start_point=(sprite.center_x, sprite.center_y),
@@ -671,7 +658,11 @@ class Player(AnimatedWalkingSprite):
         bullet_damage = self.final_damage
         bullet_penetration = self.final_penetration
 
-        if find_with_class(self.active_items, Spray):
+        if find_with_class(
+            self.active_items, Spray
+        ) and not find_with_class(
+            self.active_items, ThreeSixty
+        ):
             for angle in (
                 shoot_angle - 45,
                 shoot_angle - 22.5,
@@ -692,7 +683,11 @@ class Player(AnimatedWalkingSprite):
                 )
                 bullets.append(bullet)
 
-        if find_with_class(self.active_items, ThreeSixty):
+        if find_with_class(
+            self.active_items, ThreeSixty
+        ) and not find_with_class(
+            self.active_items, Spray
+        ):
             for angle in (
                 # We don't want the middle as it's added anyways
                 shoot_angle + 45,
@@ -702,6 +697,42 @@ class Player(AnimatedWalkingSprite):
                 shoot_angle + 225,
                 shoot_angle + 270,
                 shoot_angle + 315,
+            ):
+                bullet = Bullet(
+                    damage=bullet_damage,
+                    penetration=bullet_penetration,
+                    path_or_texture=TEXTURES_PATH / "bullet.png",
+                    center_x=self.center_x,
+                    center_y=self.center_y,
+                    angle=angle,
+                )
+                bullet.change_x, bullet.change_y = cme.utils.calc_change_x_y(
+                    speed(bullet_speed), angle
+                )
+                bullets.append(bullet)
+
+        if find_with_class(
+            self.active_items, ThreeSixty
+        ) and find_with_class(
+            self.active_items, Spray
+        ):
+            for angle in (
+                # We don't want the middle as it's added anyways
+                shoot_angle + 22.5,
+                shoot_angle + 45,
+                shoot_angle + 67.5,
+                shoot_angle + 90,
+                shoot_angle + 112.5,
+                shoot_angle + 135,
+                shoot_angle + 157.5,
+                shoot_angle + 180,
+                shoot_angle + 202.5,
+                shoot_angle + 225,
+                shoot_angle + 247.5,
+                shoot_angle + 270,
+                shoot_angle + 292.5,
+                shoot_angle + 315,
+                shoot_angle + 337.5,
             ):
                 bullet = Bullet(
                     damage=bullet_damage,
@@ -761,10 +792,10 @@ class Player(AnimatedWalkingSprite):
         """
         Get the gun's penetration, taking gun level and items into account.
         """
-        penetration = 1 * 0.5 * self.gun.level
+        penetration = max(int(1 * 0.5 * self.gun.level), 1)
         if item := find_with_class(self.active_items, Scope):
             penetration += item.EXTRA_PENETRATION
-        return math.floor(penetration)
+        return penetration
 
     @property
     def final_movement_speed(self):

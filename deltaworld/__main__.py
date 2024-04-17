@@ -47,6 +47,7 @@ def launch():
             f"Uncatched {type(e).__name__} on mainloop. See exc_info output.",
             exc_info=True,
         )
+        win.on_close()
         raise
     sys.exit(0)
 
