@@ -53,7 +53,7 @@ class ItemSprite(AnimatedSprite):
         self.add_textures(
             {"blinking": [
                 self.texture,
-                Texture.create_empty("void", self.texture.size)
+                Texture.create_empty("void", self.texture.size),
             ]}
         )
         self.animation_speed = 0.5
@@ -64,6 +64,7 @@ class ItemSprite(AnimatedSprite):
             self.state = "blinking"
         if time.time() - self.EXPIRY_TIME > self.time_placed:
             self.remove_from_sprite_lists()
+        self.update_animation()
 
 
 class MenuView(cme.view.FadingView):
@@ -772,7 +773,7 @@ class GameView(cme.view.FadingView):
             self.player.res_coins = unfinished_run.res_coins
 
         self.setup_map()
-        self.delay_before_start = 2.0 if self.current_map == "d1r1" else 4.0  # 8.0  # noqa
+        self.delay_before_start = 2.0 if self.current_map == "d1r1" else 4.0  # TODO 8.0  # noqa
         self.delay_start_time = time.time()
         self.started = False
 
