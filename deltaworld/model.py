@@ -664,11 +664,9 @@ class Player(AnimatedWalkingSprite):
             self.active_items, ThreeSixty
         ):
             for angle in (
-                shoot_angle - 45,
                 shoot_angle - 22.5,
                 # We don't want the middle as it's added anyways
                 shoot_angle + 22.5,
-                shoot_angle + 45,
             ):
                 bullet = Bullet(
                     damage=bullet_damage,
