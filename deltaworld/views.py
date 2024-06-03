@@ -1,7 +1,7 @@
 import contextlib
 import random
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import cme.concurrency
 import cme.localization
@@ -12,8 +12,8 @@ import cme.utils
 import cme.view
 from cme import csscolor, key, types
 from cme.camera import Camera2D
-from cme.shapes import Batch, Rectangle, draw_xywh_rectangle_filled
-from cme.sprite import (AnimatedSprite, Scene, Sprite, SpriteList,
+from cme.shapes import Batch, Rectangle, draw_lbwh_rectangle_filled
+from cme.sprite import (AnimatedSprite, Animator, Scene, Sprite, SpriteList,
                         check_for_collision_with_list)
 from cme.text import center_x, center_y
 from cme.texture import (PymunkHitBoxAlgorithm, Texture, load_texture,
@@ -23,14 +23,14 @@ from .constants import MAP_SIZE, TILE_SIZE
 from .enums import Entrance, Font
 from .gamesave import UnfinishedRun
 from .model import (ITEMS, MOB_NAME_TO_MOB, Hostile, Item, Level, Player,
-                    ResurrectionCoin)
+                    ResurrectionCoin, Triangle)
 from .paths import LEVELS_PATH, MAPS_PATH, MUSIC_PATH, TEXTURES_PATH
 
 if TYPE_CHECKING:
     from .window import Window
 
 
-def draw_fps(window: "Window"):
+def draw_fps(window: "Window") -> None:
     # Suppress performance warning
     with contextlib.redirect_stderr(cme.utils.NullStream):
         cme.text.draw_text(
@@ -40,11 +40,16 @@ def draw_fps(window: "Window"):
         )
 
 
-class ItemSprite(AnimatedSprite):
+class ItemSprite(AnimatedSprite):  # type: ignore[misc]
     EXPIRY_TIME = 16
     BLINK_TIME = 12
 
-    def __init__(self, item_type: type[Item], *args, **kwargs) -> None:
+    def __init__(
+        self,
+        item_type: type[Item | ResurrectionCoin],
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.type = item_type
         self.time_placed = time.time()
@@ -67,7 +72,7 @@ class ItemSprite(AnimatedSprite):
         self.update_animation()
 
 
-class MenuView(cme.view.FadingView):
+class MenuView(cme.view.FadingView):  # type: ignore[misc]
     """
     View handling the main menu where the user can start the actual gameplay,
     change settings and quit.
@@ -79,6 +84,7 @@ class MenuView(cme.view.FadingView):
         self.text_batch = Batch()
         self.settings_batch = Batch()
         self.achievements_batch = Batch()
+        self.animators: list[Animator] = []
 
         self.header = cme.text.Text(
             text="",
@@ -164,12 +170,36 @@ class MenuView(cme.view.FadingView):
             batch=self.text_batch,
         )
 
+        self.triangles: SpriteList[Sprite] = SpriteList()
+
         self.create_settings_menu()
         self.hide_settings_menu()
         self.create_achievements_menu()
         self.hide_achievements_menu()
         self.apply_language()
         self.on_resize(self.window.width, self.window.height)
+        cme.concurrency.schedule_once(self.start_triangles, 5)  # 60)
+
+    def start_triangles(self, dt: float) -> None:
+        for _ in range(20):
+            triangle = Triangle(TEXTURES_PATH.get("triangle"), scale=2)
+            triangle.change_angle = random.choice((
+                random.randint(-120, -20), random.randint(20, 120)
+            ))
+            triangle.change_x = random.choice((
+                random.randint(-60, -20), random.randint(20, 60)
+            ))
+            triangle.change_y = random.choice((
+                random.randint(-60, -20), random.randint(20, 60)
+            ))
+            triangle.center_x = random.randint(100, self.window.width - 100)
+            triangle.center_y = random.randint(100, self.window.height - 100)
+
+            triangle.alpha = 0
+            animator = Animator(triangle, 3, alpha=255)
+            animator.callback = lambda ani: self.animators.remove(ani)
+            self.animators.append(animator)
+            self.triangles.append(triangle)
 
     def on_resize(self, width: int, height: int) -> None:
         center_x(self.header, width)
@@ -256,7 +286,7 @@ class MenuView(cme.view.FadingView):
             achievement.scale = 2
         self.selected_achievement.scale = 2.4
 
-    def create_achievements_menu(self):
+    def create_achievements_menu(self) -> None:
         self.achievements_menu = Sprite(
             path_or_texture=load_texture(
                 TEXTURES_PATH / "menus" / "achievements.png"
@@ -341,14 +371,14 @@ class MenuView(cme.view.FadingView):
             batch=self.achievements_batch,
         )
 
-    def show_achievements_menu(self):
+    def show_achievements_menu(self) -> None:
         self.achievements_menu.visible = True
         self.selected_achievement = self.achievement_lawyer
 
-    def hide_achievements_menu(self):
+    def hide_achievements_menu(self) -> None:
         self.achievements_menu.visible = False
 
-    def on_key_press(self, symbol: int, modifiers: int):
+    def on_key_press(self, symbol: int, modifiers: int) -> None:
         super().on_key_press(symbol, modifiers)
         if self.rebind_overlay.visible:
             # Rebinding controls
@@ -465,7 +495,7 @@ class MenuView(cme.view.FadingView):
                 else:
                     self.hide_achievements_menu()
 
-    def apply_language(self):
+    def apply_language(self) -> None:
         self.header.text = self.window.lang["deltaworld"]
         self.start_game.text = self.window.lang["start_game"]
         if self.resume_game:
@@ -514,7 +544,7 @@ class MenuView(cme.view.FadingView):
                     text = self.window.lang["question_marks"]
         self.selected_achievement_text.text = text
 
-    def create_settings_menu(self):
+    def create_settings_menu(self) -> None:
         self.settings_entries = []
 
         self.settings_menu = Sprite(
@@ -664,13 +694,13 @@ class MenuView(cme.view.FadingView):
             font_name=Font.november,
         )
 
-    def show_settings_menu(self):
+    def show_settings_menu(self) -> None:
         self.settings_menu.visible = True
         self.settings_pointer_right.visible = True
         self.settings_pointer_left.visible = True
         self.selected_setting = self.settings_lang_switch
 
-    def hide_settings_menu(self):
+    def hide_settings_menu(self) -> None:
         self.settings_menu.visible = False
         self.settings_pointer_right.visible = False
         self.settings_pointer_left.visible = False
@@ -691,12 +721,12 @@ class MenuView(cme.view.FadingView):
         )
         self.background_music.pause()
 
-        def start_background_music(dt: float):
+        def start_background_music(dt: float) -> None:
             self.background_music.play()
 
         cme.concurrency.schedule_once(start_background_music, 1)
 
-    def on_hide_view(self):
+    def on_hide_view(self) -> None:
         super().on_hide_view()
         self.background_music.pause()
         self.background_music.delete()
@@ -705,9 +735,10 @@ class MenuView(cme.view.FadingView):
         super().on_draw()
         self.text_batch.draw()
         self.pixel_sprites.draw(pixelated=True)
+        self.triangles.draw(pixelated=True)
 
         if self.settings_menu.visible:
-            draw_xywh_rectangle_filled(  # Shade over non-settings things
+            draw_lbwh_rectangle_filled(  # Shade over non-settings things
                 0, 0, self.window.width, self.window.height, (0, 0, 0, 200)
             )
             self.settings_menu.draw(pixelated=True)
@@ -720,7 +751,7 @@ class MenuView(cme.view.FadingView):
             self.rebind_text.draw()
 
         if self.achievements_menu.visible:
-            draw_xywh_rectangle_filled(  # Shade over non-achievements things
+            draw_lbwh_rectangle_filled(  # Shade over non-achievements things
                 0, 0, self.window.width, self.window.height, (0, 0, 0, 200)
             )
             self.achievements_menu.draw(pixelated=True)
@@ -737,9 +768,12 @@ class MenuView(cme.view.FadingView):
         super().on_update(delta_time)
         self.pointer_right.update_animation()
         self.pointer_left.update_animation()
+        self.triangles.on_update(delta_time)
+        for animator in self.animators:
+            animator.update(delta_time)
 
 
-class GameView(cme.view.FadingView):
+class GameView(cme.view.FadingView):  # type: ignore[misc]
     """
     View handling the main gameplay.
     """
@@ -881,12 +915,12 @@ class GameView(cme.view.FadingView):
 
     def place_item(
         self, point: types.Point, item: type[Item | ResurrectionCoin]
-    ):
+    ) -> None:
         self.scene.add_sprite("items", ItemSprite(
             item, item.TEXTURE, center_x=point[0], center_y=point[1]
         ))
 
-    def kill_player(self):
+    def kill_player(self) -> None:
         for sprite in (
             *self.scene["hostiles"],
             *self.scene["friendly_projectiles"],
@@ -908,16 +942,16 @@ class GameView(cme.view.FadingView):
         else:
             self.back_to_main_menu()  # TODO Show sad illuminati view
 
-    def _show_player(self, dt: float):
+    def _show_player(self, dt: float) -> None:
         self.player.visible = True
         self.player.center = (MAP_SIZE / 2, MAP_SIZE / 2)
         self.player.set_idling()
         cme.concurrency.schedule_once(self._allow_player_movement, 1.0)
 
-    def _allow_player_movement(self, dt: float):
+    def _allow_player_movement(self, dt: float) -> None:
         self.player.can_move = True
 
-    def new_wave(self):
+    def new_wave(self) -> None:
         try:
             self.last_wave_duration = self.level.waves[
                 self.level.current_wave
@@ -929,7 +963,7 @@ class GameView(cme.view.FadingView):
             self.spawn_mob(MOB_NAME_TO_MOB[mob])
         self.last_wave_start = time.time()
 
-    def spawn_mob(self, mob_type: type[Hostile]):
+    def spawn_mob(self, mob_type: type[Hostile]) -> None:
         mob = mob_type(
             player=self.player,
             walls=self.scene["walls"],
@@ -951,7 +985,7 @@ class GameView(cme.view.FadingView):
                 mob.center_x = MAP_SIZE + TILE_SIZE
                 mob.center_y = random.choice([247, 285, 323, 361])
 
-    def apply_language(self):
+    def apply_language(self) -> None:
         self.pause_continue.text = self.window.lang["pause_continue"]
         self.pause_exit.text = self.window.lang["pause_exit"]
         self.pause_exit_without_saving.text = self.window.lang[
@@ -959,18 +993,18 @@ class GameView(cme.view.FadingView):
         ]
 
     @property
-    def paused(self):
+    def paused(self) -> bool:
         return self._paused
 
     @paused.setter
-    def paused(self, value):
+    def paused(self, value: bool) -> None:
         self._paused = value
         if value:
             self.show_pause_menu()
         else:
             self.hide_pause_menu()
 
-    def create_pause_menu(self):
+    def create_pause_menu(self) -> None:
         self.pause_overlay = cme.shapes.create_rectangle(
             center_x=self.window.width / 2,
             center_y=self.window.height / 2,
@@ -1024,15 +1058,15 @@ class GameView(cme.view.FadingView):
         self.pause_selected_item = self.pause_continue
         self.resize()
 
-    def show_pause_menu(self):
+    def show_pause_menu(self) -> None:
         self.pause_selected_item = self.pause_continue
         self.resize()
 
-    def hide_pause_menu(self):
+    def hide_pause_menu(self) -> None:
         self.pause_selected_item = self.pause_continue
         self.resize()
 
-    def resize(self):
+    def resize(self) -> None:
         self.on_resize(self.window.width, self.window.height)
 
     def setup_player(self) -> None:
@@ -1059,14 +1093,14 @@ class GameView(cme.view.FadingView):
         self.player.set_idling()
         self.player.res_coins = 3 if not self.hard else 0
 
-    def load_current_map(self):
+    def load_current_map(self) -> None:
         self.tilemap = cme.tilemap.TileMap(
             MAPS_PATH / (self.current_map + ".tmj"),
             use_spatial_hash=True,
         )
         self.scene = Scene.from_tilemap(self.tilemap)
 
-    def setup_map(self):
+    def setup_map(self) -> None:
         self.load_current_map()
         self.player.position = MAP_SIZE / 2, MAP_SIZE / 2
         self.scene.add_sprite_list("hostiles", use_spatial_hash=True)
@@ -1089,17 +1123,17 @@ class GameView(cme.view.FadingView):
         self.map_scale = (
             width / MAP_SIZE if width < height else height / MAP_SIZE
         )
-        self.camera.viewport = (
-            (self.window.width - MAP_SIZE * self.map_scale) / 2 + 80,
-            80,
-            MAP_SIZE * self.map_scale - 160,
-            MAP_SIZE * self.map_scale - 160,
+        self.camera.viewport = types.XYWH(
+            x=width / 2,
+            y=height / 2,
+            width=MAP_SIZE * self.map_scale - 160,
+            height=MAP_SIZE * self.map_scale - 160,
         )
-        self.camera.projection = (
-            -width / 2,
-            -width / 2 + MAP_SIZE,
-            -height / 2,
-            -height / 2 + MAP_SIZE,
+        self.camera.projection = types.LRBT(
+            left=-width / 2,
+            right=-width / 2 + MAP_SIZE,
+            bottom=-height / 2,
+            top=-height / 2 + MAP_SIZE,
         )
 
         center_x(self.pause_continue, width)
@@ -1132,13 +1166,13 @@ class GameView(cme.view.FadingView):
         if __debug__:
             draw_fps(self.window)
 
-    def back_to_main_menu(self):
+    def back_to_main_menu(self) -> None:
         self.paused = False
         self.next_view = MenuView
         self.start_fade_out()
         self._fade_out = 255  # Skip fading
 
-    def on_key_press(self, symbol: int, modifiers: int):
+    def on_key_press(self, symbol: int, modifiers: int) -> None:
         super().on_key_press(symbol, modifiers)
 
         if symbol == key.ESCAPE:
@@ -1198,7 +1232,7 @@ class GameView(cme.view.FadingView):
         elif symbol == self.window.settings.controls.shoot_right:
             self.player.shoot_right_pressed = True
 
-    def on_key_release(self, symbol: int, modifiers: int):
+    def on_key_release(self, symbol: int, modifiers: int) -> None:
         super().on_key_release(symbol, modifiers)
 
         if symbol == self.window.settings.controls.move_up:

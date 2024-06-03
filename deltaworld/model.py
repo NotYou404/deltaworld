@@ -1,6 +1,7 @@
 import math
 import multiprocessing
 import multiprocessing.pool
+import multiprocessing.queues
 import random
 import time
 import tomllib
@@ -13,13 +14,13 @@ import cme.utils
 from cme import types
 from cme.pathfinding import AStarBarrierList, astar_calculate_path
 from cme.sprite import (AnimatedSprite, AnimatedWalkingSprite, SimpleUpdater,
-                        Sprite, SpriteList, TopDownUpdater)
+                        Sprite, SpriteList, TopDownUpdater, WallBounceUpdater)
 from cme.texture import load_texture
 
 from .constants import MAP_SIZE, TILE_SIZE
 from .paths import TEXTURES_PATH
 
-PATHFINDING_QUEUE: Optional[multiprocessing.Queue] = None
+PATHFINDING_QUEUE: Optional[multiprocessing.Queue] = None  # type: ignore[type-arg]  # noqa
 PATHFINDING_POOL: Optional[multiprocessing.pool.Pool] = None
 
 
@@ -27,7 +28,7 @@ def enqueue_pathfinder(
     sprite: Sprite,
     target_point: types.Point,
     walls: SpriteList,
-) -> multiprocessing.Queue:
+) -> multiprocessing.pool.AsyncResult[Any]:
     global PATHFINDING_POOL
     if not PATHFINDING_POOL:
         PATHFINDING_POOL = multiprocessing.Pool(3)
@@ -54,8 +55,10 @@ def enqueue_pathfinder(
 
 
 def _calc_path_pkl(
-    sprite: tuple, target_point: types.Point, walls: list[tuple]
-) -> list[types.Point]:
+    sprite: tuple[types.PathOrTexture, float, float, float, float],
+    target_point: types.Point,
+    walls: list[tuple[types.PathOrTexture, float, float, float, float]],
+) -> Optional[list[types.Point]]:
     """
     We serialize Sprite and SpriteList with the minimal things required to
     enable pickling. For some reason I couldn't figure out, pickling (even
@@ -87,7 +90,7 @@ def calc_path(
     sprite: Sprite,
     target_point: types.Point,
     walls: SpriteList,
-) -> list[types.Point]:
+) -> Optional[list[types.Point]]:
     # As the algorithm doesn't allow moving on tiles instead of between tiles,
     # We need to manually displace walls and modify the path after calculating.
     for wall in walls:
@@ -103,7 +106,7 @@ def calc_path(
         bottom=TILE_SIZE / 2,
         top=MAP_SIZE + TILE_SIZE / 2,
     )
-    path = astar_calculate_path(
+    path: Optional[list[types.Point]] = astar_calculate_path(
         start_point=(sprite.center_x, sprite.center_y),
         end_point=get_tile_center_of_point(target_point),
         astar_barrier_list=barrier_list,
@@ -120,12 +123,15 @@ def calc_path(
     return [(p[0] + TILE_SIZE / 2, p[1] + TILE_SIZE / 2) for p in path]
 
 
-def get_tile_center_of_point(point: types.Point):
+def get_tile_center_of_point(
+    point: types.Point
+) -> Optional[tuple[float, float]]:
     for tile_x in range(0, MAP_SIZE, TILE_SIZE):
         for tile_y in range(0, MAP_SIZE, TILE_SIZE):
-            rect = (tile_x, tile_y, TILE_SIZE, TILE_SIZE)
+            rect = types.LBWH(tile_x, tile_y, TILE_SIZE, TILE_SIZE)
             if cme.utils.point_in_rect(*point, rect=rect):
                 return (tile_x + TILE_SIZE / 2, tile_y + TILE_SIZE / 2)
+    return None
 
 
 def speed(speed: float, factor: float = 140) -> float:
@@ -141,7 +147,10 @@ def speed(speed: float, factor: float = 140) -> float:
     return speed * factor
 
 
-def find_with_class(iter: Iterable, cls: type | tuple[type]) -> Optional[Any]:
+def find_with_class(
+    iter: Iterable[Any],
+    cls: type | tuple[type],
+) -> Optional[Any]:
     """
     Searches the given iterable for an item with the given class. Returns the
     first find.
@@ -156,6 +165,7 @@ def find_with_class(iter: Iterable, cls: type | tuple[type]) -> Optional[Any]:
     for obj in iter:
         if isinstance(obj, cls):
             return obj
+    return None
 
 
 class Level:
@@ -191,7 +201,7 @@ class Level:
             raise RuntimeError("Cannot calculate special wave")
         return random.choices(
             population=list(self.mobs_probabilities.keys()),
-            weights=self.mobs_probabilities.values(),
+            weights=self.mobs_probabilities.values(),  # type: ignore[arg-type]
             k=mobs,
         )
 
@@ -256,10 +266,10 @@ class Item:
     DURATION: int | float
     TEXTURE: Path
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.time_used: Optional[float] = None
 
-    def use(self):
+    def use(self) -> None:
         self.time_used = time.time()
 
 
@@ -327,7 +337,7 @@ class LaserBeam(Item):
     TEXTURE = TEXTURES_PATH.get("laser_beam")
 
 
-class Bullet(Sprite):
+class Bullet(Sprite):  # type: ignore[misc]
     def __init__(
         self,
         damage: int = 1,
@@ -337,8 +347,8 @@ class Bullet(Sprite):
         center_x: float = 0.0,
         center_y: float = 0.0,
         angle: float = 0.0,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         super().__init__(
             path_or_texture=path_or_texture,
             scale=scale,
@@ -352,7 +362,7 @@ class Bullet(Sprite):
         self.hostiles_hit = SpriteList()  # Avoid hitting an enemy twice
 
 
-class Hostile(AnimatedSprite):
+class Hostile(AnimatedSprite):  # type: ignore[misc]
     HP: int
     BASE_SPEED: float
 
@@ -361,9 +371,9 @@ class Hostile(AnimatedSprite):
         player: Sprite,
         walls: SpriteList,
         hostiles: SpriteList,
-        *args,
-        **kwargs,
-    ):
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.player = player
         self.walls = walls
@@ -373,17 +383,17 @@ class Hostile(AnimatedSprite):
                 self.other_hostiles.append(hostile)
         self.hp = self.HP
         self.can_attack = True
-        self.last_attack = 0
+        self.last_attack = 0.0
         self.player_moved = True
-        self.attack_cooldown = 0
+        self.attack_cooldown = 0.0
         self.next_point: Optional[types.Point] = None
-        self.path_queue: Optional[deque] = None
+        self.path_queue: Optional[deque[types.Point]] = None
         self.path_pending = False
-        self.pending_path_queue: Optional [multiprocessing.pool.AsyncResult] = None  # : Optional[multiprocessing.Queue] = None  # noqa
+        self.pending_path_queue: Optional[multiprocessing.pool.AsyncResult[Any]] = None  # noqa
         self.path_calc_process: Optional[Process] = None
 
     @property
-    def speed(self):
+    def speed(self) -> float:
         return self.BASE_SPEED
 
     def on_update(self, delta_time: float) -> None:
@@ -392,9 +402,9 @@ class Hostile(AnimatedSprite):
             SimpleUpdater(),
         )
 
-        if self.path_pending and self.pending_path_queue.ready():
+        if self.path_pending and self.pending_path_queue.ready():  # type: ignore[union-attr]  # noqa
             self.path_pending = False
-            self._process_path(self.pending_path_queue.get())
+            self._process_path(self.pending_path_queue.get())  # type: ignore
 
         if any([self.player.change_x, self.player.change_y]):
             self.player_moved = True
@@ -411,14 +421,14 @@ class Hostile(AnimatedSprite):
         if self.next_point:
             at_point_x = False
             at_point_y = False
-            if abs(self.center_x - self.next_point[0]) <= abs(
-                self.change_x * delta_time
+            if abs(self.center_x - self.next_point[0]) <= abs(  # type: ignore[has-type]  # noqa
+                self.change_x * delta_time  # type: ignore[has-type]
             ):
                 self.center_x = self.next_point[0]
                 self.change_x = 0
                 at_point_x = True
-            if abs(self.center_y - self.next_point[1]) <= abs(
-                self.change_y * delta_time
+            if abs(self.center_y - self.next_point[1]) <= abs(  # type: ignore[has-type]  # noqa
+                self.change_y * delta_time  # type: ignore[has-type]
             ):
                 self.center_y = self.next_point[1]
                 self.change_y = 0
@@ -433,13 +443,13 @@ class Hostile(AnimatedSprite):
                 speed(self.speed), angle
             )
 
-    def _walk_to_point(self, point):
+    def _walk_to_point(self, point: types.Point) -> None:
         if self.path_pending:
             return
         self.path_pending = True
         self.pending_path_queue = enqueue_pathfinder(self, point, self.walls)
 
-    def _process_path(self, path):
+    def _process_path(self, path: list[types.Point]) -> None:
         if path is not None:
             self.path_queue = deque(reversed(path))
             if self.next_point:
@@ -447,7 +457,7 @@ class Hostile(AnimatedSprite):
                 # already, as sprite would go back and forth
                 self.path_queue.pop()
 
-    def _walk_to_player(self):
+    def _walk_to_player(self) -> None:
         if not self.path_queue or self.player_moved:
             self._walk_to_point((self.player.center_x, self.player.center_y))
 
@@ -460,7 +470,7 @@ class Zombie(Hostile):
     HP = 1
     BASE_SPEED = 0.5
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.attack_cooldown = 0.6
         self.add_texture(
@@ -472,13 +482,13 @@ class Zombie(Hostile):
         self._walk_to_player()
 
 
-class Player(AnimatedWalkingSprite):
+class Player(AnimatedWalkingSprite):  # type: ignore[misc]
     BASE_DAMAGE = 1
     BASE_SPEED = 1
     BASE_FIRE_RATE = 3
     BASE_BULLET_SPEED = 2
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.armor = Upgrade()
         self.gun = Upgrade()
@@ -523,7 +533,7 @@ class Player(AnimatedWalkingSprite):
             return 315  # Move bottom right
         elif self.change_x < 0 and self.change_y < 0:
             return 225  # Move bottom left
-        elif self.change_x < 0 and self.change_y > 0:
+        else:  # self.change_x < 0 and self.change_y > 0
             return 135  # Move top left
 
     def on_update(
@@ -547,7 +557,7 @@ class Player(AnimatedWalkingSprite):
             self.change_y = 0
         elif dir_vertical and not dir_horizontal:
             self.change_x = 0
-            self.change_y = dir_vertical * speed(self.final_movement_speed)
+            self.change_y = dir_vertical * speed(self.final_movement_speed)  # type: ignore[assignment]  # noqa
         elif not dir_horizontal and not dir_vertical:
             self.change_x = 0
             self.change_y = 0
@@ -572,7 +582,7 @@ class Player(AnimatedWalkingSprite):
         if self.can_move:
             super().on_update(
                 delta_time, TopDownUpdater(
-                    self.walls, (0, 0, MAP_SIZE, MAP_SIZE)
+                    self.walls, types.LBWH(0, 0, MAP_SIZE, MAP_SIZE)
                 )
             )
 
@@ -582,7 +592,7 @@ class Player(AnimatedWalkingSprite):
         # Remove timed out items
         cur_time = time.time()
         for item in self.active_items.copy():
-            if item.time_used < cur_time - item.DURATION:
+            if item.time_used < cur_time - item.DURATION:  # type: ignore[operator]  # noqa
                 self.active_items.remove(item)
 
     def use_item(self) -> None:
@@ -618,10 +628,10 @@ class Player(AnimatedWalkingSprite):
         :rtype: Optional[list[Sprite]]
         """
         if self.last_shot > time.time() - 1 / self.final_fire_rate:
-            return  # Can't shoot that fast
+            return None  # Can't shoot that fast
 
         if not self.can_move:
-            return
+            return None
 
         # Calculate shooting angle
         dir_horizontal = 0
@@ -636,7 +646,7 @@ class Player(AnimatedWalkingSprite):
             dir_vertical -= 1
         if not dir_horizontal and not dir_vertical:
             # Either not shooting at all, or holding two opposing buttons
-            return
+            return None
         if dir_horizontal and not dir_vertical:
             shoot_angle = 0 if dir_horizontal > 0 else 180
         elif dir_vertical and not dir_horizontal:
@@ -765,7 +775,7 @@ class Player(AnimatedWalkingSprite):
         return bullets
 
     @property
-    def final_damage(self):
+    def final_damage(self) -> int:
         """
         Get the damage done with a single shot, taking ammo and items into
         account.
@@ -776,7 +786,7 @@ class Player(AnimatedWalkingSprite):
         return math.floor(damage)
 
     @property
-    def final_fire_rate(self):
+    def final_fire_rate(self) -> float:
         """Get the gun's fire rate, taking gun level and items into account."""
         rate = self.BASE_FIRE_RATE + self.BASE_FIRE_RATE * 0.2 * self.gun.level
         if item := find_with_class(self.active_items, SemiAutomatic):
@@ -786,7 +796,7 @@ class Player(AnimatedWalkingSprite):
         return rate
 
     @property
-    def final_penetration(self):
+    def final_penetration(self) -> int:
         """
         Get the gun's penetration, taking gun level and items into account.
         """
@@ -796,7 +806,7 @@ class Player(AnimatedWalkingSprite):
         return penetration
 
     @property
-    def final_movement_speed(self):
+    def final_movement_speed(self) -> float:
         """
         Get the player's movement speed, taking armor level and items into
         account.
@@ -809,12 +819,23 @@ class Player(AnimatedWalkingSprite):
         return speed
 
     @property
-    def final_bullet_speed(self):
+    def final_bullet_speed(self) -> float:
         """Get bullet speed, taking items into account."""
         speed = self.BASE_BULLET_SPEED
         if item := find_with_class(self.active_items, Pressurer):
             speed *= item.BULLET_SPEED_MOD
         return speed
+
+
+class Triangle(Sprite):  # type: ignore[misc]
+    def on_update(self, delta_time: float) -> None:
+        super().on_update(delta_time, WallBounceUpdater(
+            types.LBWH(
+                0, 0,
+                cme.get_window().width,
+                cme.get_window().height,
+            )
+        ))
 
 
 MOB_NAME_TO_MOB = {
@@ -844,7 +865,7 @@ MOB_NAME_TO_MOB = {
     # "delta": Delta,
 }
 
-ITEMS: list[Item] = [
+ITEMS: list[type[Item]] = [
     SemiAutomatic, Pressurer, Scope, BlueCow, Spray,
     ThreeSixty, HolyGuard, SmokeBomb, LaserBeam,
 ]

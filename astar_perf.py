@@ -8,14 +8,14 @@ PATH_UPDATE_INTERVAL = 0.6
 
 
 def filter_border_walls(
-    walls: arcade.SpriteList,
+    walls: arcade.SpriteList[arcade.Sprite],
     border_width: float,
     border_height: float,
     map_width: float,
     map_height: float,
     start_x: float = 0,
     start_y: float = 0,
-) -> arcade.SpriteList:
+) -> arcade.SpriteList[arcade.Sprite]:
     """
     Filter walls segments making up the border out of a list of all wall
     segments, returning a new SpriteList without border segments.
@@ -37,7 +37,7 @@ def filter_border_walls(
     :return: A new SpriteList without border segments.
     :rtype: arcade.SpriteList
     """
-    new_list = arcade.SpriteList()
+    new_list: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
     boundaries_left = (start_x, start_x + border_width)
     boundaries_right = (map_width - border_width, map_width)
     boundaries_bottom = (start_y, start_y + border_height)
@@ -58,7 +58,7 @@ def filter_border_walls(
 
 
 class Window(arcade.Window):
-    def setup(self):
+    def setup(self) -> None:
         self.text_batch = pyglet.graphics.Batch()
         self.map = arcade.tilemap.TileMap(
             "deltaworld/assets/maps/d1r3.tmj", use_spatial_hash=True,
@@ -90,18 +90,18 @@ class Window(arcade.Window):
             608,
         )
 
-    def add_hostile(self, dt: float):
+    def add_hostile(self, dt: float) -> None:
         self.scene.add_sprite("hostiles", sprite := arcade.Sprite(
             path_or_texture="deltaworld/assets/textures/hostiles/zombie/"
                             "zombie_default.png",
             center_x=random.randint(50, 458),
             center_y=random.randint(50, 458),
         ))
-        sprite.last_path_update = 0
-        sprite.path = []
-        sprite.perfs = ()
+        sprite.last_path_update = 0  # type: ignore[attr-defined]
+        sprite.path = []  # type: ignore[attr-defined]
+        sprite.perfs = ()  # type: ignore[attr-defined]
 
-    def on_update(self, delta_time: float):
+    def on_update(self, delta_time: float) -> None:
         for hostile in self.scene["hostiles"]:
             if time.time() - hostile.last_path_update < PATH_UPDATE_INTERVAL:
                 continue
@@ -143,7 +143,7 @@ class Window(arcade.Window):
             f"{avg_astar_calc_time}"
         )
 
-    def on_draw(self):
+    def on_draw(self) -> None:
         self.scene.draw()
         for hostile in self.scene["hostiles"]:
             arcade.draw_line_strip(
@@ -154,4 +154,4 @@ class Window(arcade.Window):
 if __name__ == "__main__":
     win = Window(width=608, height=608, center_window=True)
     win.setup()
-    arcade.run()
+    arcade.run()  # type: ignore[no-untyped-call]
